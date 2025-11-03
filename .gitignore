@@ -1,0 +1,20 @@
+# Build artifacts
+.build/
+DerivedData/
+
+# SwiftPM / SwiftUI previews cache
+.swiftpm/
+
+# Editor cruft
+.DS_Store
+.vscode/
+
+# Logs & user-specific data
+*.log
+
+# Tool caches
+.cache/
+
+# Xcode state
+xcuserdata/
+*.xccheckout
