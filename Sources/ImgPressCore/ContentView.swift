@@ -486,7 +486,7 @@ struct ContentView: View {
     }
 
     private var formatControls: some View {
-        VStack(spacing: 16) {
+        VStack(alignment: .leading, spacing: 16) {
             // Format picker
             VStack(alignment: .leading, spacing: 10) {
                 Label("Output Format", systemImage: "doc.badge.gearshape")
@@ -500,8 +500,8 @@ struct ContentView: View {
                 }
                 .pickerStyle(.segmented)
                 .labelsHidden()
-                .frame(maxWidth: .infinity)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
 
             // Quality slider
             if appState.conversionForm.format.supportsQuality {
