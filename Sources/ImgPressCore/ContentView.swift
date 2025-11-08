@@ -316,7 +316,6 @@ struct ContentView: View {
         HStack(spacing: 8) {
             // Thumbnail
             thumbnail(for: job.item)
-                .frame(width: 48, height: 48)
                 .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
                 .overlay(
                     RoundedRectangle(cornerRadius: 6, style: .continuous)
@@ -848,7 +847,9 @@ struct ContentView: View {
         if let image = item.thumbnail(maxDimension: 96) {
             Image(nsImage: image)
                 .resizable()
-                .aspectRatio(contentMode: .fill)
+                .scaledToFill()
+                .frame(width: 48, height: 48)
+                .clipped()
         } else {
             ZStack {
                 RoundedRectangle(cornerRadius: 6, style: .continuous)
@@ -863,6 +864,7 @@ struct ContentView: View {
                     .font(.body)
                     .foregroundStyle(.secondary)
             }
+            .frame(width: 48, height: 48)
         }
     }
 

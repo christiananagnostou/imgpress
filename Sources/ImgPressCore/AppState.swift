@@ -349,8 +349,8 @@ final class ThumbnailCache: Sendable {
             return nil
         }
 
-        let thumbnail = NSImage(
-            cgImage: cgImage, size: NSSize(width: maxDimension, height: maxDimension))
+        let size = NSSize(width: cgImage.width, height: cgImage.height)
+        let thumbnail = NSImage(cgImage: cgImage, size: size)
 
         if cache.count >= maxCacheSize {
             cache.removeFirst()
