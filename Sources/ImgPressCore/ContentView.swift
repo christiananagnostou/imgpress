@@ -500,6 +500,7 @@ struct ContentView: View {
                 }
                 .pickerStyle(.segmented)
                 .labelsHidden()
+                .frame(maxWidth: .infinity)
             }
 
             // Quality slider
@@ -522,6 +523,11 @@ struct ContentView: View {
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.secondary.opacity(0.04))
+        )
     }
 
     private var toggleControls: some View {
@@ -569,7 +575,6 @@ struct ContentView: View {
                     Slider(value: binding(for: \.resizePercent), in: 20...150, step: 5)
                         .tint(.orange)
                 }
-                .padding(.leading, 28)
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }

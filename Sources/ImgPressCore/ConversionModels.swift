@@ -50,7 +50,7 @@ struct ConversionForm: Sendable {
             resizeEnabled: false,
             resizePercent: 100,
             outputDirectoryPath: "~/Desktop/ImgPress",
-            filenameSuffix: "_imgpress"
+            filenameSuffix: ""
         )
     }
 }
@@ -73,7 +73,7 @@ struct ConversionPreset: Identifiable, Equatable, Sendable {
             resizeEnabled: defaultResizePercent != 100,
             resizePercent: defaultResizePercent,
             outputDirectoryPath: "~/Desktop/ImgPress",
-            filenameSuffix: "_\(defaultFormat.fileExtension)"
+            filenameSuffix: ""
         )
     }
 
@@ -104,6 +104,6 @@ struct ConversionPreset: Identifiable, Equatable, Sendable {
             defaultQuality: 60,
             defaultResizePercent: 100,
             preserveMetadata: true
-        )
+        ),
     ]
 }
