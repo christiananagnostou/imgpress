@@ -12,8 +12,9 @@ final class MenuBarController: NSObject {
         self.appState = appState
         self.statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         super.init()
-        NSLog("MenuBarController init - status item created: \(statusItem)")
         statusItem.isVisible = true
+        statusItem.behavior = [.removalAllowed]
+        NSLog("MenuBarController init - status item created with length \(statusItem.length)")
         configureStatusItem()
     }
 

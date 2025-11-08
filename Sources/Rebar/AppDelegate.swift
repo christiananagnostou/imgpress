@@ -1,15 +1,18 @@
 import AppKit
 import SwiftUI
 
-@main
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var menuBarController: MenuBarController?
     private var appState: AppState?
     func applicationDidFinishLaunching(_ notification: Notification) {
+        NSLog("Rebar applicationDidFinishLaunching invoked")
+        ProcessInfo.processInfo.disableAutomaticTermination("RebarNeedsToStayRunning")
+        NSApp.setActivationPolicy(.accessory)
+
         let appState = AppState()
         self.appState = appState
-        NSLog("Rebar launched; status item booting")
+        NSLog("Rebar app state initialized")
 
         let contentView = ContentView()
             .environmentObject(appState)
@@ -21,8 +24,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         popover.contentViewController = NSHostingController(rootView: contentView)
 
         menuBarController = MenuBarController(popover: popover, appState: appState)
-
-        NSApp.setActivationPolicy(.accessory)
+        NSLog("Rebar menu bar controller ready")
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {

@@ -5,7 +5,7 @@ Rebar is a macOS menu bar utility for image conversion and management. Drop an i
 ## Current Snapshot
 
 - Native status bar item that accepts drag-and-drop for broad image and raw formats (HEIC, RAW, AVIF, etc.).
-- Popover management UI built with SwiftUI for reviewing the dropped asset and previewing conversion presets.
+- SwiftUI control center for reviewing one or many dropped assets, complete with thumbnails, preset chips, and live progress.
 - Reactive `AppState` coordinator ready to orchestrate conversion pipelines and metadata handling.
 
 > The project is in the “alpha” wiring stage—UI flows, queueing, and squoosh/exiftool integration are staged but not yet connected.
@@ -56,7 +56,7 @@ swift run Rebar
 > If SwiftPM complains about cache locations, override them with  
 > `SWIFT_MODULECACHE_PATH=.build/modulecache CLANG_MODULE_CACHE_PATH=.build/modulecache swift run Rebar`
 
-While `swift run` is active, the Rebar status item (camera aperture symbol or “Reb”) appears on the macOS menu bar or inside the Control Center overflow. Click it to launch the SwiftUI popover.
+While `swift run` is active, the Rebar status item (camera aperture symbol or “Reb”) appears on the macOS menu bar or inside the Control Center overflow. Click it to launch the SwiftUI popover. Drag one file, many files, or whole folders onto the icon, tune the format/quality/resizing controls, and press **Convert & Queue**—Rebar will batch the conversions, show per-file progress, write outputs to your chosen directory (defaults to `~/Desktop/Rebar`), and provide a “Show in Finder” shortcut for the latest result.
 
 To develop in a full app bundle, open `Package.swift` in Xcode (`open Package.swift`), choose the *Rebar* scheme, set the run destination to “My Mac”, and press **Run**. Xcode handles signing, archives, and `.app` generation for distribution.
 
@@ -67,8 +67,8 @@ The original `squish` Zsh script (included in the prompt) drives the conversion 
 ## Next Steps Checklist
 
 - [ ] Model conversion presets and wire them to the placeholder buttons.
-- [ ] Shell out to Squoosh CLI with progress callbacks.
-- [ ] Copy metadata using ExifTool after conversion completes.
+- [ ] Shell out to Squoosh CLI with progress callbacks (current build uses native CoreGraphics pipeline for JPEG/PNG/HEIC/WEBP/AVIF*).
+- [ ] Copy metadata using ExifTool after conversion completes (metadata preservation currently handled via CGImageDestination when supported).
 - [ ] Persist output locations and user preferences.
 - [ ] Add lightweight telemetry/logging for debugging conversions.
 - [ ] Replace SF Symbols icon with a custom template asset and notarize the app for distribution.
