@@ -1,74 +1,129 @@
 # Rebar
 
-Rebar is a macOS menu bar utility for image conversion and management. Drop an image onto the menu bar icon to open a focused command center for converting, compressing, or exporting in modern formats while keeping metadata intact.
+A lightweight macOS menu bar application for batch image conversion and optimization. Rebar lives in your menu bar and provides quick access to convert images between formats (JPEG, PNG, WebP, AVIF) with customizable quality and resize options.
 
-## Current Snapshot
+## Features
 
-- Native status bar item that accepts drag-and-drop for broad image and raw formats (HEIC, RAW, AVIF, etc.).
-- SwiftUI control center for reviewing one or many dropped assets, complete with thumbnails, preset chips, and live progress.
-- Reactive `AppState` coordinator ready to orchestrate conversion pipelines and metadata handling.
+- **Menu Bar Integration**: Quick access from your menu bar with drag-and-drop support
+- **Batch Processing**: Convert multiple images at once, including entire folders
+- **Multiple Formats**: Support for JPEG, PNG, WebP, and AVIF output formats
+- **Smart Compression**: Adjustable quality settings with real-time size comparison
+- **Resize Options**: Scale images by percentage while preserving aspect ratio
+- **Quick Presets**: Pre-configured settings for common workflows
+- **Advanced Controls**:
+  - Pause, resume, or stop conversions in progress
+  - Preserve or strip image metadata
+  - Custom output directory and filename suffixes
+- **Performance Optimized**: Efficient thumbnail generation and batch processing for large image sets
+- **RAW Support**: Handles various RAW camera formats (CR2, CR3, etc.)
 
-> The project is in the “alpha” wiring stage—UI flows, queueing, and squoosh/exiftool integration are staged but not yet connected.
+## Requirements
 
-## Architecture Overview
+- macOS 14.0 or later
+- Swift 5.9 or later
 
-| Layer | Key Types | Responsibilities |
-| --- | --- | --- |
-| Menu bar shell | `MenuBarController`, `StatusItemDropView` | Creates the status bar item, handles drag/drop validation, animates feedback, shows/hides the popover. |
-| State & models | `AppState`, `DroppedItem`, `DropError` | Observable state container that registers accepted files, surfaces errors, and prepares metadata for the UI. |
-| Presentation | `ContentView` (SwiftUI) | Displays the latest drop, placeholder conversion presets, and app chrome. |
+## Installation
 
-The separation keeps AppKit-only code at the edges while the core logic and UI remain testable SwiftUI/Combine components. When we plug in conversion workflows we can do so via async tasks triggered from `AppState`.
+### Build from Source
 
-## Roadmap Toward the Converter
-
-1. **Conversion orchestration**  
-   Hook the `MenuBarController` drop pathway into a dedicated conversion service that shells out to the existing Squoosh + ExifTool workflow. The intent is to keep “Presets” as high-level actions that translate to CLI invocations with preset parameters.
-
-2. **Preset definitions**  
-   Elevate the hard-coded presets to a data-driven model (e.g. `ConversionPreset` structs) describing codec, quality, resize, output directory, and metadata policy. Persist custom presets to disk later.
-
-3. **Metadata bookkeeping**  
-   Mirror the CLI’s metadata preservation by queueing a follow-up ExifTool step after Squoosh finishes, with structured progress + failure reporting in the UI.
-
-4. **Queue & progress UI**  
-   Support multiple drops by maintaining a conversion queue in `AppState`, highlighting in-progress, completed, and failed jobs.
-
-5. **Distribution**  
-   Wrap the executable in a proper `.app` bundle via `swift package` plugins or an Xcode project, add signing, sandbox entitlements (e.g. `com.apple.security.files.user-selected.read-write`), and deliver as a notarized universal build.
-
-## Getting Started
-
-### Prerequisites
-
-- macOS 13 Ventura or newer.
-- Xcode 15 (or newer) with command-line tools (`sudo xcode-select --switch /Applications/Xcode.app`).
-- Optional (for future conversion features): Node.js 18+, `npx @frostoven/squoosh-cli`, `exiftool`, and `bc`.
-
-### Build & Run
+1. Clone the repository:
 
 ```bash
-git clone https://github.com/YOUR-ORG/rebar.git
+git clone https://github.com/yourusername/rebar.git
 cd rebar
-swift run Rebar
 ```
 
-> If SwiftPM complains about cache locations, override them with  
-> `SWIFT_MODULECACHE_PATH=.build/modulecache CLANG_MODULE_CACHE_PATH=.build/modulecache swift run Rebar`
+2. Build the application:
 
-While `swift run` is active, the Rebar status item (camera aperture symbol or “Reb”) appears on the macOS menu bar or inside the Control Center overflow. Click it to launch the SwiftUI popover. Drag one file, many files, or whole folders onto the icon, tune the format/quality/resizing controls, and press **Convert & Queue**—Rebar will batch the conversions, show per-file progress, write outputs to your chosen directory (defaults to `~/Desktop/Rebar`), and provide a “Show in Finder” shortcut for the latest result.
+```bash
+swift build -c release
+```
 
-To develop in a full app bundle, open `Package.swift` in Xcode (`open Package.swift`), choose the *Rebar* scheme, set the run destination to “My Mac”, and press **Run**. Xcode handles signing, archives, and `.app` generation for distribution.
+3. The compiled executable will be at `.build/release/Rebar`
 
-## Prior CLI Inspiration
+4. Copy to Applications or run directly:
 
-The original `squish` Zsh script (included in the prompt) drives the conversion pipeline via `npx @frostoven/squoosh-cli` and `exiftool`. Rebar will wrap the same tools behind a graphical preset system, allowing us to keep all the quality, resizing, and metadata-preservation guarantees while offering a more discoverable UX.
+```bash
+.build/release/Rebar
+```
 
-## Next Steps Checklist
+## Usage
 
-- [ ] Model conversion presets and wire them to the placeholder buttons.
-- [ ] Shell out to Squoosh CLI with progress callbacks (current build uses native CoreGraphics pipeline for JPEG/PNG/HEIC/WEBP/AVIF*).
-- [ ] Copy metadata using ExifTool after conversion completes (metadata preservation currently handled via CGImageDestination when supported).
-- [ ] Persist output locations and user preferences.
-- [ ] Add lightweight telemetry/logging for debugging conversions.
-- [ ] Replace SF Symbols icon with a custom template asset and notarize the app for distribution.
+### Getting Started
+
+1. Launch Rebar - it will appear in your menu bar as a camera aperture icon
+2. Click the menu bar icon to open the conversion panel
+3. Drag and drop images or folders onto the drop zone
+4. Select your desired output format and quality settings
+5. Click "Convert" to process your images
+
+### Drag and Drop
+
+You can drag images directly onto the menu bar icon without opening the panel. Rebar will automatically:
+
+- Accept the files
+- Open the panel
+- Display the queued images ready for conversion
+
+### Quick Presets
+
+Rebar includes three optimized presets:
+
+- **Shareable JPEG**: 75% quality, ideal for web sharing while preserving metadata
+- **Transparent PNG**: Lossless compression, perfect for logos and graphics with transparency
+- **High-efficiency AVIF**: Modern format with 45% smaller file sizes for compatible devices
+
+### Advanced Options
+
+- **Output Directory**: Choose where converted images are saved (defaults to Desktop/Rebar)
+- **Filename Suffix**: Add custom suffixes to distinguish converted files
+- **Metadata**: Toggle preservation of EXIF data, location info, and other metadata
+- **Resize**: Scale images down by percentage for web optimization or storage
+
+### Playback Controls
+
+During batch conversions, use the playback controls to:
+
+- **Pause**: Temporarily stop processing to free up system resources
+- **Resume**: Continue from where you paused
+- **Stop**: Cancel the remaining conversions (completed files are kept)
+
+## How It Works
+
+Rebar is built with Swift and SwiftUI, leveraging Apple's native ImageIO framework for efficient image processing. The application runs as a menu bar utility (LSUIElement) without a dock icon.
+
+**Key Architecture:**
+
+- **Efficient Thumbnails**: Uses CGImageSource to generate thumbnails without loading full images into memory, preventing memory issues with large batches
+- **Batch Processing**: Processes files in the background while updating the UI every 20 files to keep the interface responsive
+- **Display Limiting**: Only renders the first 50 items in large batches to maintain smooth scrolling
+- **Format Support**: Leverages system-native codecs for JPEG, PNG, WebP (macOS 11+), and AVIF (macOS 13+)
+
+## Supported File Types
+
+**Input formats:**
+
+- Standard images (JPEG, PNG, TIFF, BMP, GIF, etc.)
+- RAW camera formats (CR2, CR3, Adobe DNG, etc.)
+- HEIC/HEIF
+- Live Photos
+- QuickTime images
+
+**Output formats:**
+
+- JPEG
+- PNG
+- WebP
+- AVIF
+
+## License
+
+MIT License - see LICENSE file for details
+
+## Contributing
+
+Contributions are welcome! Please read CONTRIBUTING.md for guidelines on how to submit improvements and bug fixes.
+
+## Acknowledgments
+
+Built with Swift, SwiftUI, and Apple's ImageIO framework.
