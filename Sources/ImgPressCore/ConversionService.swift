@@ -17,7 +17,8 @@ enum ConversionServiceError: LocalizedError, Sendable {
         case .imageReadFailed:
             return "Couldn't read the original image."
         case .destinationCreationFailed(let format):
-            return "Failed to create destination for \(format) format. This format may not be supported on your macOS version."
+            return
+                "Failed to create destination for \(format) format. This format may not be supported on your macOS version."
         case .conversionFailed:
             return "Image conversion failed."
         case .directoryCreationFailed(let path):
@@ -74,7 +75,8 @@ final class ConversionService: Sendable {
         progress?(.ensuringOutputDirectory)
         if !fm.fileExists(atPath: outputDirectoryPath, isDirectory: &isDir) {
             do {
-                try fm.createDirectory(atPath: outputDirectoryPath, withIntermediateDirectories: true)
+                try fm.createDirectory(
+                    atPath: outputDirectoryPath, withIntermediateDirectories: true)
             } catch {
                 throw ConversionServiceError.directoryCreationFailed(outputDirectoryPath)
             }
@@ -95,16 +97,21 @@ final class ConversionService: Sendable {
             throw ConversionServiceError.imageReadFailed
         }
 
-        guard let destination = CGImageDestinationCreateWithURL(outputURL as CFURL, destUTType as CFString, 1, nil) else {
+        guard
+            let destination = CGImageDestinationCreateWithURL(
+                outputURL as CFURL, destUTType as CFString, 1, nil)
+        else {
             throw ConversionServiceError.destinationCreationFailed(form.format.rawValue)
         }
 
         var options: [CFString: Any] = [:]
 
-        if let metadata = CGImageSourceCopyPropertiesAtIndex(imageSource, 0, nil) {
-            if form.preserveMetadata {
-                options[kCGImageDestinationMetadata] = metadata
-            }
+        // Read metadata and properties in one call
+        let sourceProperties =
+            CGImageSourceCopyPropertiesAtIndex(imageSource, 0, nil) as? [CFString: Any]
+
+        if let metadata = sourceProperties, form.preserveMetadata {
+            options[kCGImageDestinationMetadata] = metadata
         }
 
         if form.format.supportsQuality {
@@ -112,9 +119,10 @@ final class ConversionService: Sendable {
         }
 
         if form.resizeEnabled,
-           let properties = CGImageSourceCopyPropertiesAtIndex(imageSource, 0, nil) as? [CFString: Any],
-           let width = properties[kCGImagePropertyPixelWidth] as? CGFloat,
-           let height = properties[kCGImagePropertyPixelHeight] as? CGFloat {
+            let properties = sourceProperties,
+            let width = properties[kCGImagePropertyPixelWidth] as? CGFloat,
+            let height = properties[kCGImagePropertyPixelHeight] as? CGFloat
+        {
             progress?(.resizing)
             let scale = CGFloat(form.resizePercent / 100.0)
             let maxDimension = Int(max(width, height) * scale)
@@ -167,8 +175,8 @@ extension ConversionStage {
     }
 }
 
-private extension ImageFormat {
-    var cgImageUTType: String? {
+extension ImageFormat {
+    fileprivate var cgImageUTType: String? {
         switch self {
         case .jpeg:
             return UTType.jpeg.identifier

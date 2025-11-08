@@ -126,22 +126,17 @@ final class AppState: ObservableObject {
             var totalOutputSize: Int64 = 0
 
             for job in jobsSnapshot {
-                if await MainActor.run(body: { self.shouldStop }) {
-                    break
-                }
+                // Since AppState is @MainActor, we can access properties directly
+                if shouldStop { break }
 
-                while await MainActor.run(body: { self.isPaused && !self.shouldStop }) {
+                while isPaused && !shouldStop {
                     try? await Task.sleep(nanoseconds: 100_000_000)
                 }
 
-                if await MainActor.run(body: { self.shouldStop }) {
-                    break
-                }
+                if shouldStop { break }
 
-                await MainActor.run {
-                    self.updateJob(job.id) { job in
-                        job.status = .inProgress(step: .loadingInput)
-                    }
+                updateJob(job.id) { job in
+                    job.status = .inProgress(step: .loadingInput)
                 }
 
                 do {
@@ -154,20 +149,16 @@ final class AppState: ObservableObject {
                     totalOriginalSize += result.originalSize
                     totalOutputSize += result.outputSize
 
-                    await MainActor.run {
-                        self.updateJob(job.id) { job in
-                            job.status = .completed(result)
-                        }
-                        self.conversionStatusMessage =
-                            "Converting \(completedCount)/\(jobsSnapshot.count)…"
-                        self.conversionResult = result
+                    updateJob(job.id) { job in
+                        job.status = .completed(result)
                     }
+                    conversionStatusMessage =
+                        "Converting \(completedCount)/\(jobsSnapshot.count)…"
+                    conversionResult = result
                 } catch {
                     failedCount += 1
-                    await MainActor.run {
-                        self.updateJob(job.id) { job in
-                            job.status = .failed(error.localizedDescription)
-                        }
+                    updateJob(job.id) { job in
+                        job.status = .failed(error.localizedDescription)
                     }
                 }
             }
@@ -175,29 +166,27 @@ final class AppState: ObservableObject {
             let endTime = Date()
             let duration = endTime.timeIntervalSince(startTime)
 
-            await MainActor.run {
-                let wasStopped = self.shouldStop
-                let summary =
-                    wasStopped
-                    ? "Stopped: \(completedCount) completed, \(jobsSnapshot.count - completedCount - failedCount) skipped"
-                    : (failedCount > 0
-                        ? "Completed \(completedCount), failed \(failedCount)"
-                        : "Completed all \(completedCount) file(s)")
-                self.conversionStatusMessage = summary
-                if completedCount > 0 {
-                    self.conversionSummary = ConversionSummary(
-                        totalFiles: jobsSnapshot.count,
-                        completedCount: completedCount,
-                        failedCount: failedCount,
-                        totalOriginalSize: totalOriginalSize,
-                        totalOutputSize: totalOutputSize,
-                        duration: duration
-                    )
-                }
-                self.isConverting = false
-                self.isPaused = false
-                self.shouldStop = false
+            let wasStopped = shouldStop
+            let summary =
+                wasStopped
+                ? "Stopped: \(completedCount) completed, \(jobsSnapshot.count - completedCount - failedCount) skipped"
+                : (failedCount > 0
+                    ? "Completed \(completedCount), failed \(failedCount)"
+                    : "Completed all \(completedCount) file(s)")
+            conversionStatusMessage = summary
+            if completedCount > 0 {
+                conversionSummary = ConversionSummary(
+                    totalFiles: jobsSnapshot.count,
+                    completedCount: completedCount,
+                    failedCount: failedCount,
+                    totalOriginalSize: totalOriginalSize,
+                    totalOutputSize: totalOutputSize,
+                    duration: duration
+                )
             }
+            isConverting = false
+            isPaused = false
+            shouldStop = false
         }
     }
 
@@ -240,6 +229,7 @@ final class AppState: ObservableObject {
 private func flattenURLs(_ urls: [URL]) -> [URL] {
     let fm = FileManager.default
     var collected = Set<URL>()
+    let resourceKeys: [URLResourceKey] = [.isDirectoryKey, .isRegularFileKey]
 
     func processURL(_ url: URL) {
         var isDir: ObjCBool = false
@@ -249,15 +239,14 @@ private func flattenURLs(_ urls: [URL]) -> [URL] {
             guard
                 let enumerator = fm.enumerator(
                     at: url,
-                    includingPropertiesForKeys: [.isDirectoryKey, .isRegularFileKey],
+                    includingPropertiesForKeys: resourceKeys,
                     options: [.skipsHiddenFiles]
                 )
             else { return }
 
             for case let fileURL as URL in enumerator {
-                if let isRegularFile = try? fileURL.resourceValues(forKeys: [.isRegularFileKey])
-                    .isRegularFile,
-                    isRegularFile
+                if let resourceValues = try? fileURL.resourceValues(forKeys: Set(resourceKeys)),
+                    resourceValues.isRegularFile == true
                 {
                     collected.insert(fileURL.standardizedFileURL)
                 }
@@ -354,7 +343,7 @@ final class ThumbnailCache: Sendable {
                 [
                     kCGImageSourceCreateThumbnailFromImageAlways: true,
                     kCGImageSourceCreateThumbnailWithTransform: true,
-                    kCGImageSourceThumbnailMaxPixelSize: maxDimension * 2,
+                    kCGImageSourceThumbnailMaxPixelSize: maxDimension,
                 ] as CFDictionary)
         else {
             return nil

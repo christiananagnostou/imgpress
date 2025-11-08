@@ -7,6 +7,15 @@ struct ContentView: View {
     @State private var presetsExpanded = false
     @State private var advancedExpanded = false
 
+    // Static formatters to avoid repeated allocations
+    static let byteFormatter: ByteCountFormatter = {
+        let formatter = ByteCountFormatter()
+        formatter.countStyle = .file
+        return formatter
+    }()
+
+    private static let displayLimit = 50
+
     var body: some View {
         ZStack {
             // Background gradient
@@ -233,12 +242,10 @@ struct ContentView: View {
 
                 // Horizontal scrolling file list - compact and smooth
                 ScrollViewReader { scrollProxy in
-                    let displayLimit = 50
-
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 8) {
-                            // Only show first 50 items for performance, rest on demand
-                            let itemsToShow = appState.jobs.prefix(displayLimit)
+                            // Only show first items for performance, rest on demand
+                            let itemsToShow = appState.jobs.prefix(Self.displayLimit)
 
                             ForEach(Array(itemsToShow)) { job in
                                 jobRow(for: job)
@@ -246,12 +253,12 @@ struct ContentView: View {
                             }
 
                             // Show "X more" indicator if there are hidden items
-                            if appState.jobs.count > displayLimit {
+                            if appState.jobs.count > Self.displayLimit {
                                 VStack(spacing: 4) {
                                     Image(systemName: "ellipsis.circle.fill")
                                         .font(.title3)
                                         .foregroundStyle(.secondary)
-                                    Text("+\(appState.jobs.count - displayLimit) more")
+                                    Text("+\(appState.jobs.count - Self.displayLimit) more")
                                         .font(.caption2)
                                         .foregroundStyle(.secondary)
                                 }
@@ -268,10 +275,12 @@ struct ContentView: View {
                     .frame(height: 72)
                     .onChange(of: appState.jobs.map { $0.status }) {
                         // Auto-scroll to the first in-progress job with smooth spring animation
-                        if let inProgressJob = appState.jobs.prefix(displayLimit).first(where: {
-                            if case .inProgress = $0.status { return true }
-                            return false
-                        }) {
+                        if let inProgressJob = appState.jobs.prefix(Self.displayLimit).first(
+                            where: {
+                                if case .inProgress = $0.status { return true }
+                                return false
+                            })
+                        {
                             withAnimation(.spring(response: 0.5, dampingFraction: 0.85)) {
                                 scrollProxy.scrollTo(inProgressJob.id, anchor: .center)
                             }
@@ -745,56 +754,19 @@ struct ContentView: View {
 
             Divider()
 
-            // Size statistics
+            // Size statistics with percentage change
             HStack(spacing: 20) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Original")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                    Text(
-                        ByteCountFormatter.string(
-                            fromByteCount: summary.totalOriginalSize, countStyle: .file)
-                    )
-                    .font(.subheadline.weight(.semibold))
-                    .monospacedDigit()
-                }
+                SizeComparisonView(
+                    originalSize: summary.totalOriginalSize,
+                    outputSize: summary.totalOutputSize,
+                    isSmaller: summary.isSmaller
+                )
 
-                Image(systemName: "arrow.right")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Optimized")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                    Text(
-                        ByteCountFormatter.string(
-                            fromByteCount: summary.totalOutputSize, countStyle: .file)
-                    )
-                    .font(.subheadline.weight(.semibold))
-                    .monospacedDigit()
-                    .foregroundStyle(summary.isSmaller ? .green : .orange)
-                }
-
-                Spacer()
-
-                VStack(alignment: .trailing, spacing: 4) {
-                    let percent = abs(summary.percentChange)
-                    let formatted = String(format: "%.1f%%", percent)
-                    Text(summary.isSmaller ? "-\(formatted)" : "+\(formatted)")
-                        .font(.title3.weight(.bold))
-                        .monospacedDigit()
-                        .foregroundStyle(summary.isSmaller ? .green : .orange)
-
-                    let savedBytes = abs(summary.totalSizeDelta)
-                    Text(
-                        summary.isSmaller
-                            ? "saved \(ByteCountFormatter.string(fromByteCount: savedBytes, countStyle: .file))"
-                            : "added \(ByteCountFormatter.string(fromByteCount: savedBytes, countStyle: .file))"
-                    )
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                }
+                PercentChangeBadge(
+                    percentChange: summary.percentChange,
+                    sizeDelta: summary.totalSizeDelta,
+                    isSmaller: summary.isSmaller
+                )
             }
 
             Button {
@@ -809,18 +781,7 @@ struct ContentView: View {
             }
             .buttonStyle(.bordered)
         }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(summary.isSmaller ? Color.green.opacity(0.08) : Color.orange.opacity(0.08))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .strokeBorder(
-                    summary.isSmaller ? Color.green.opacity(0.3) : Color.orange.opacity(0.3),
-                    lineWidth: 1)
-        )
-        .transition(.opacity.combined(with: .move(edge: .bottom)))
+        .resultContainer(isSmaller: summary.isSmaller)
     }
 
     private func formatDuration(_ duration: TimeInterval) -> String {
@@ -854,48 +815,17 @@ struct ContentView: View {
             Divider()
 
             HStack(spacing: 20) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Original")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                    Text(
-                        ByteCountFormatter.string(
-                            fromByteCount: result.originalSize, countStyle: .file)
-                    )
-                    .font(.subheadline.weight(.semibold))
-                    .monospacedDigit()
-                }
+                SizeComparisonView(
+                    originalSize: result.originalSize,
+                    outputSize: result.outputSize,
+                    isSmaller: result.isSmaller
+                )
 
-                Image(systemName: "arrow.right")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Optimized")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                    Text(
-                        ByteCountFormatter.string(
-                            fromByteCount: result.outputSize, countStyle: .file)
-                    )
-                    .font(.subheadline.weight(.semibold))
-                    .monospacedDigit()
-                    .foregroundStyle(result.isSmaller ? .green : .orange)
-                }
-
-                Spacer()
-
-                VStack(alignment: .trailing, spacing: 4) {
-                    let percent = abs(result.percentChange)
-                    let formatted = String(format: "%.1f%%", percent)
-                    Text(result.isSmaller ? "-\(formatted)" : "+\(formatted)")
-                        .font(.title3.weight(.bold))
-                        .monospacedDigit()
-                        .foregroundStyle(result.isSmaller ? .green : .orange)
-                    Text(result.isSmaller ? "smaller" : "larger")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
+                PercentChangeBadge(
+                    percentChange: result.percentChange,
+                    sizeDelta: result.sizeDelta,
+                    isSmaller: result.isSmaller
+                )
             }
 
             Button {
@@ -910,18 +840,7 @@ struct ContentView: View {
             }
             .buttonStyle(.bordered)
         }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(result.isSmaller ? Color.green.opacity(0.08) : Color.orange.opacity(0.08))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .strokeBorder(
-                    result.isSmaller ? Color.green.opacity(0.3) : Color.orange.opacity(0.3),
-                    lineWidth: 1)
-        )
-        .transition(.opacity.combined(with: .move(edge: .bottom)))
+        .resultContainer(isSmaller: result.isSmaller)
     }
 
     @ViewBuilder
@@ -954,8 +873,7 @@ struct ContentView: View {
         case .inProgress(let step):
             return step.rawValue
         case .completed(let result):
-            let formatter = ByteCountFormatter.string(
-                fromByteCount: result.outputSize, countStyle: .file)
+            let formatter = Self.byteFormatter.string(fromByteCount: result.outputSize)
             return "✓ \(formatter)"
         case .failed(let message):
             return "✗ \(message)"
@@ -1179,5 +1097,93 @@ struct TipRow: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
+    }
+}
+
+// Shared components for result displays
+struct SizeComparisonView: View {
+    let originalSize: Int64
+    let outputSize: Int64
+    let isSmaller: Bool
+
+    var body: some View {
+        HStack(spacing: 20) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Original")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                Text(ContentView.byteFormatter.string(fromByteCount: originalSize))
+                    .font(.subheadline.weight(.semibold))
+                    .monospacedDigit()
+            }
+
+            Image(systemName: "arrow.right")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Optimized")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                Text(ContentView.byteFormatter.string(fromByteCount: outputSize))
+                    .font(.subheadline.weight(.semibold))
+                    .monospacedDigit()
+                    .foregroundStyle(isSmaller ? .green : .orange)
+            }
+
+            Spacer()
+        }
+    }
+}
+
+struct PercentChangeBadge: View {
+    let percentChange: Double
+    let sizeDelta: Int64
+    let isSmaller: Bool
+
+    var body: some View {
+        VStack(alignment: .trailing, spacing: 4) {
+            let percent = abs(percentChange)
+            let formatted = String(format: "%.1f%%", percent)
+            Text(isSmaller ? "-\(formatted)" : "+\(formatted)")
+                .font(.title3.weight(.bold))
+                .monospacedDigit()
+                .foregroundStyle(isSmaller ? .green : .orange)
+
+            let savedBytes = abs(sizeDelta)
+            Text(
+                isSmaller
+                    ? "saved \(ContentView.byteFormatter.string(fromByteCount: savedBytes))"
+                    : "added \(ContentView.byteFormatter.string(fromByteCount: savedBytes))"
+            )
+            .font(.caption2)
+            .foregroundStyle(.secondary)
+        }
+    }
+}
+
+struct ResultContainerModifier: ViewModifier {
+    let isSmaller: Bool
+
+    func body(content: Content) -> some View {
+        content
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(isSmaller ? Color.green.opacity(0.08) : Color.orange.opacity(0.08))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(
+                        isSmaller ? Color.green.opacity(0.3) : Color.orange.opacity(0.3),
+                        lineWidth: 1)
+            )
+            .transition(.opacity.combined(with: .move(edge: .bottom)))
+    }
+}
+
+extension View {
+    func resultContainer(isSmaller: Bool) -> some View {
+        modifier(ResultContainerModifier(isSmaller: isSmaller))
     }
 }
