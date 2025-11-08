@@ -18,7 +18,7 @@ let package = Package(
         .executableTarget(
             name: "ImgPress",
             dependencies: [],
-            path: "Sources/ImgPress",
+            path: "ImgPress",
             swiftSettings: [
                 .enableUpcomingFeature("StrictConcurrency"),
                 .unsafeFlags(["-warnings-as-errors"], .when(configuration: .debug))

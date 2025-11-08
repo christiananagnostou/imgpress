@@ -35,7 +35,7 @@ type_name:
 
 # File settings
 included:
-  - Sources
+  - ImgPress
 
 excluded:
   - .build
