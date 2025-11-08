@@ -13,26 +13,26 @@ struct ContentView: View {
             LinearGradient(
                 colors: [
                     Color(nsColor: .controlBackgroundColor),
-                    Color(nsColor: .windowBackgroundColor)
+                    Color(nsColor: .windowBackgroundColor),
                 ],
                 startPoint: .top,
                 endPoint: .bottom
             )
             .ignoresSafeArea()
-            
+
             VStack(spacing: 0) {
                 header
                     .padding(.horizontal, 20)
                     .padding(.top, 16)
                     .padding(.bottom, 12)
-                
+
                 if appState.isImporting {
                     importBanner
                         .padding(.horizontal, 20)
                         .padding(.bottom, 12)
                         .transition(.move(edge: .top).combined(with: .opacity))
                 }
-                
+
                 ScrollViewReader { scrollProxy in
                     ScrollView {
                         VStack(spacing: 16) {
@@ -55,9 +55,9 @@ struct ContentView: View {
                         }
                     }
                 }
-                
+
                 Divider()
-                
+
                 footer
                     .padding(.horizontal, 20)
                     .padding(.vertical, 12)
@@ -82,12 +82,12 @@ struct ContentView: View {
                         )
                     )
                     .frame(width: 36, height: 36)
-                
+
                 Image(systemName: "camera.aperture")
                     .font(.system(size: 18, weight: .semibold))
                     .foregroundStyle(.white)
             }
-            
+
             VStack(alignment: .leading, spacing: 2) {
                 Text("ImgPress")
                     .font(.title3.weight(.bold))
@@ -95,9 +95,9 @@ struct ContentView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
-            
+
             Spacer()
-            
+
             // Settings button
             Button {
                 showingSettings.toggle()
@@ -118,7 +118,7 @@ struct ContentView: View {
             ProgressView()
                 .controlSize(.small)
                 .scaleEffect(0.8)
-            
+
             VStack(alignment: .leading, spacing: 2) {
                 Text(appState.importStatusMessage ?? "Scanning…")
                     .font(.subheadline.weight(.medium))
@@ -128,7 +128,7 @@ struct ContentView: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            
+
             Spacer()
         }
         .padding(12)
@@ -146,31 +146,34 @@ struct ContentView: View {
         VStack(spacing: 16) {
             // Preset selector (collapsible) - at the top
             presetSelector
-            
+
             // Format and quality controls
             formatControls
-            
+
             // Toggles - metadata and resize
             toggleControls
-            
+
             // Advanced options (output path, suffix)
             advancedOptions
-            
+
             Divider()
                 .padding(.vertical, 4)
-            
+
             // Convert button - positioned just above file list
             convertButton
-            
+
             // Files section - always visible, shows conversion progress
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
-                    Label("\(appState.jobs.count) File\(appState.jobs.count == 1 ? "" : "s")", systemImage: "photo.stack")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.primary)
-                    
+                    Label(
+                        "\(appState.jobs.count) File\(appState.jobs.count == 1 ? "" : "s")",
+                        systemImage: "photo.stack"
+                    )
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.primary)
+
                     Spacer()
-                    
+
                     // Show progress during conversion
                     if appState.isConverting {
                         HStack(spacing: 6) {
@@ -182,7 +185,7 @@ struct ContentView: View {
                                     .font(.caption2)
                                     .foregroundStyle(.secondary)
                             }
-                            
+
                             // Playback controls
                             HStack(spacing: 4) {
                                 // Pause/Resume button
@@ -193,14 +196,16 @@ struct ContentView: View {
                                         appState.pauseConversion()
                                     }
                                 } label: {
-                                    Image(systemName: appState.isPaused ? "play.fill" : "pause.fill")
-                                        .font(.system(size: 10))
-                                        .frame(width: 18, height: 18)
+                                    Image(
+                                        systemName: appState.isPaused ? "play.fill" : "pause.fill"
+                                    )
+                                    .font(.system(size: 10))
+                                    .frame(width: 18, height: 18)
                                 }
                                 .buttonStyle(.plain)
                                 .foregroundStyle(.secondary)
                                 .help(appState.isPaused ? "Resume" : "Pause")
-                                
+
                                 // Stop button
                                 Button {
                                     appState.stopConversion()
@@ -225,21 +230,21 @@ struct ContentView: View {
                         .foregroundStyle(.secondary)
                     }
                 }
-                
+
                 // Horizontal scrolling file list - compact and smooth
                 ScrollViewReader { scrollProxy in
                     let displayLimit = 50
-                    
+
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 8) {
                             // Only show first 50 items for performance, rest on demand
                             let itemsToShow = appState.jobs.prefix(displayLimit)
-                            
+
                             ForEach(Array(itemsToShow)) { job in
                                 jobRow(for: job)
                                     .id(job.id)
                             }
-                            
+
                             // Show "X more" indicator if there are hidden items
                             if appState.jobs.count > displayLimit {
                                 VStack(spacing: 4) {
@@ -261,9 +266,9 @@ struct ContentView: View {
                         .padding(.vertical, 2)
                     }
                     .frame(height: 72)
-                    .onChange(of: appState.jobs.map { $0.status }) { 
+                    .onChange(of: appState.jobs.map { $0.status }) {
                         // Auto-scroll to the first in-progress job with smooth spring animation
-                        if let inProgressJob = appState.jobs.prefix(displayLimit).first(where: { 
+                        if let inProgressJob = appState.jobs.prefix(displayLimit).first(where: {
                             if case .inProgress = $0.status { return true }
                             return false
                         }) {
@@ -282,11 +287,12 @@ struct ContentView: View {
             .overlay(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .strokeBorder(
-                        appState.isConverting ? Color.accentColor.opacity(0.3) : Color.primary.opacity(0.08),
+                        appState.isConverting
+                            ? Color.accentColor.opacity(0.3) : Color.primary.opacity(0.08),
                         lineWidth: appState.isConverting ? 1.5 : 1
                     )
             )
-            
+
             // Status/Results - shown below the file list
             if let summary = appState.conversionSummary {
                 conversionSummaryView(summary)
@@ -296,7 +302,7 @@ struct ContentView: View {
             }
         }
     }
-    
+
     private func jobRow(for job: ConversionJob) -> some View {
         HStack(spacing: 8) {
             // Thumbnail
@@ -310,7 +316,7 @@ struct ContentView: View {
                             lineWidth: statusBorderWidth(for: job.status)
                         )
                 )
-            
+
             // File info - fixed width to prevent jittering
             VStack(alignment: .leading, spacing: 3) {
                 Text(job.item.displayName)
@@ -318,11 +324,11 @@ struct ContentView: View {
                     .lineLimit(1)
                     .foregroundStyle(.primary)
                     .frame(maxWidth: 110, alignment: .leading)
-                
+
                 HStack(spacing: 4) {
                     statusBadge(for: job.status)
                         .frame(width: 12, height: 12)
-                    
+
                     // Fixed width for status text to prevent jittering
                     Text(statusSubtitle(for: job))
                         .font(.system(size: 9.5))
@@ -340,7 +346,7 @@ struct ContentView: View {
                 .fill(statusBackgroundColor(for: job.status))
         )
     }
-    
+
     private func statusBorderColor(for status: ConversionJobStatus) -> Color {
         switch status {
         case .inProgress:
@@ -353,7 +359,7 @@ struct ContentView: View {
             return Color.clear
         }
     }
-    
+
     private func statusBorderWidth(for status: ConversionJobStatus) -> CGFloat {
         switch status {
         case .inProgress:
@@ -364,7 +370,7 @@ struct ContentView: View {
             return 0
         }
     }
-    
+
     private func statusBackgroundColor(for status: ConversionJobStatus) -> Color {
         switch status {
         case .inProgress:
@@ -390,25 +396,26 @@ struct ContentView: View {
                     Label("Quick Presets", systemImage: "wand.and.stars")
                         .font(.subheadline.weight(.semibold))
                     Spacer()
-                    
+
                     // Show current selection when collapsed
                     if !presetsExpanded {
                         Text(appState.selectedPreset.name)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
-                    
+
                     Image(systemName: "chevron.right")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
                         .rotationEffect(.degrees(presetsExpanded ? 90 : 0))
-                        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: presetsExpanded)
+                        .animation(
+                            .spring(response: 0.3, dampingFraction: 0.8), value: presetsExpanded)
                 }
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .padding(14)
-            
+
             // Expandable content
             if presetsExpanded {
                 VStack(spacing: 10) {
@@ -419,13 +426,19 @@ struct ContentView: View {
                             HStack(spacing: 12) {
                                 // Selection indicator
                                 Circle()
-                                    .strokeBorder(appState.selectedPreset == preset ? Color.accentColor : Color.secondary.opacity(0.3), lineWidth: 2)
+                                    .strokeBorder(
+                                        appState.selectedPreset == preset
+                                            ? Color.accentColor : Color.secondary.opacity(0.3),
+                                        lineWidth: 2
+                                    )
                                     .background(
                                         Circle()
-                                            .fill(appState.selectedPreset == preset ? Color.accentColor : Color.clear)
+                                            .fill(
+                                                appState.selectedPreset == preset
+                                                    ? Color.accentColor : Color.clear)
                                     )
                                     .frame(width: 16, height: 16)
-                                
+
                                 VStack(alignment: .leading, spacing: 3) {
                                     Text(preset.name)
                                         .font(.subheadline.weight(.medium))
@@ -434,9 +447,9 @@ struct ContentView: View {
                                         .font(.caption2)
                                         .foregroundStyle(.secondary)
                                 }
-                                
+
                                 Spacer()
-                                
+
                                 // Format badge
                                 Text(preset.defaultFormat.displayName.uppercased())
                                     .font(.caption2.weight(.semibold))
@@ -452,7 +465,9 @@ struct ContentView: View {
                             .padding(.horizontal, 12)
                             .background(
                                 RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                    .fill(appState.selectedPreset == preset ? Color.accentColor.opacity(0.08) : Color.clear)
+                                    .fill(
+                                        appState.selectedPreset == preset
+                                            ? Color.accentColor.opacity(0.08) : Color.clear)
                             )
                         }
                         .buttonStyle(.plain)
@@ -469,7 +484,7 @@ struct ContentView: View {
         )
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
-    
+
     private var formatControls: some View {
         VStack(spacing: 16) {
             // Format picker
@@ -477,7 +492,7 @@ struct ContentView: View {
                 Label("Output Format", systemImage: "doc.badge.gearshape")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.secondary)
-                
+
                 Picker("Format", selection: binding(for: \.format)) {
                     ForEach(ImageFormat.allCases) { format in
                         Text(format.displayName).tag(format)
@@ -500,7 +515,7 @@ struct ContentView: View {
                             .monospacedDigit()
                             .foregroundStyle(.primary)
                     }
-                    
+
                     Slider(value: binding(for: \.quality), in: 30...100, step: 1)
                         .tint(.accentColor)
                 }
@@ -508,7 +523,7 @@ struct ContentView: View {
             }
         }
     }
-    
+
     private var toggleControls: some View {
         VStack(alignment: .leading, spacing: 14) {
             Toggle(isOn: binding(for: \.preserveMetadata)) {
@@ -550,7 +565,7 @@ struct ContentView: View {
                             .monospacedDigit()
                             .foregroundStyle(.orange)
                     }
-                    
+
                     Slider(value: binding(for: \.resizePercent), in: 20...150, step: 5)
                         .tint(.orange)
                 }
@@ -564,7 +579,7 @@ struct ContentView: View {
                 .fill(Color.secondary.opacity(0.04))
         )
     }
-    
+
     private var advancedOptions: some View {
         VStack(spacing: 0) {
             // Custom clickable header
@@ -581,13 +596,14 @@ struct ContentView: View {
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
                         .rotationEffect(.degrees(advancedExpanded ? 90 : 0))
-                        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: advancedExpanded)
+                        .animation(
+                            .spring(response: 0.3, dampingFraction: 0.8), value: advancedExpanded)
                 }
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .padding(12)
-            
+
             // Expandable content
             if advancedExpanded {
                 VStack(alignment: .leading, spacing: 12) {
@@ -630,7 +646,7 @@ struct ContentView: View {
         )
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
-    
+
     private var convertButton: some View {
         Button {
             appState.queueConversion()
@@ -678,16 +694,17 @@ struct ContentView: View {
                 )
             }
         }
-        .animation(.spring(response: 0.4, dampingFraction: 0.75), value: appState.conversionResult != nil)
+        .animation(
+            .spring(response: 0.4, dampingFraction: 0.75), value: appState.conversionResult != nil)
     }
-    
+
     private func conversionSummaryView(_ summary: ConversionSummary) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Image(systemName: summary.isSmaller ? "checkmark.circle.fill" : "info.circle.fill")
                     .font(.title2)
                     .foregroundStyle(summary.isSmaller ? .green : .orange)
-                
+
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Conversion Complete")
                         .font(.headline)
@@ -696,14 +713,16 @@ struct ContentView: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     } else {
-                        Text("All \(summary.totalFiles) file\(summary.totalFiles == 1 ? "" : "s") converted")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                        Text(
+                            "All \(summary.totalFiles) file\(summary.totalFiles == 1 ? "" : "s") converted"
+                        )
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                     }
                 }
-                
+
                 Spacer()
-                
+
                 // Duration badge
                 VStack(alignment: .trailing, spacing: 2) {
                     HStack(spacing: 4) {
@@ -718,36 +737,42 @@ struct ContentView: View {
                         .foregroundStyle(.tertiary)
                 }
             }
-            
+
             Divider()
-            
+
             // Size statistics
             HStack(spacing: 20) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Original")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
-                    Text(ByteCountFormatter.string(fromByteCount: summary.totalOriginalSize, countStyle: .file))
-                        .font(.subheadline.weight(.semibold))
-                        .monospacedDigit()
+                    Text(
+                        ByteCountFormatter.string(
+                            fromByteCount: summary.totalOriginalSize, countStyle: .file)
+                    )
+                    .font(.subheadline.weight(.semibold))
+                    .monospacedDigit()
                 }
-                
+
                 Image(systemName: "arrow.right")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                
+
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Optimized")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
-                    Text(ByteCountFormatter.string(fromByteCount: summary.totalOutputSize, countStyle: .file))
-                        .font(.subheadline.weight(.semibold))
-                        .monospacedDigit()
-                        .foregroundStyle(summary.isSmaller ? .green : .orange)
+                    Text(
+                        ByteCountFormatter.string(
+                            fromByteCount: summary.totalOutputSize, countStyle: .file)
+                    )
+                    .font(.subheadline.weight(.semibold))
+                    .monospacedDigit()
+                    .foregroundStyle(summary.isSmaller ? .green : .orange)
                 }
-                
+
                 Spacer()
-                
+
                 VStack(alignment: .trailing, spacing: 4) {
                     let percent = abs(summary.percentChange)
                     let formatted = String(format: "%.1f%%", percent)
@@ -755,14 +780,18 @@ struct ContentView: View {
                         .font(.title3.weight(.bold))
                         .monospacedDigit()
                         .foregroundStyle(summary.isSmaller ? .green : .orange)
-                    
+
                     let savedBytes = abs(summary.totalSizeDelta)
-                    Text(summary.isSmaller ? "saved \(ByteCountFormatter.string(fromByteCount: savedBytes, countStyle: .file))" : "added \(ByteCountFormatter.string(fromByteCount: savedBytes, countStyle: .file))")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
+                    Text(
+                        summary.isSmaller
+                            ? "saved \(ByteCountFormatter.string(fromByteCount: savedBytes, countStyle: .file))"
+                            : "added \(ByteCountFormatter.string(fromByteCount: savedBytes, countStyle: .file))"
+                    )
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
                 }
             }
-            
+
             Button {
                 appState.revealLatestOutput()
             } label: {
@@ -782,11 +811,13 @@ struct ContentView: View {
         )
         .overlay(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .strokeBorder(summary.isSmaller ? Color.green.opacity(0.3) : Color.orange.opacity(0.3), lineWidth: 1)
+                .strokeBorder(
+                    summary.isSmaller ? Color.green.opacity(0.3) : Color.orange.opacity(0.3),
+                    lineWidth: 1)
         )
         .transition(.opacity.combined(with: .move(edge: .bottom)))
     }
-    
+
     private func formatDuration(_ duration: TimeInterval) -> String {
         if duration < 60 {
             return String(format: "%.1fs", duration)
@@ -796,14 +827,14 @@ struct ContentView: View {
             return "\(minutes)m \(seconds)s"
         }
     }
-    
+
     private func conversionResultView(_ result: ConversionResult) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Image(systemName: result.isSmaller ? "checkmark.circle.fill" : "info.circle.fill")
                     .font(.title3)
                     .foregroundStyle(result.isSmaller ? .green : .orange)
-                
+
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Conversion Complete")
                         .font(.headline)
@@ -811,38 +842,44 @@ struct ContentView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-                
+
                 Spacer()
             }
-            
+
             Divider()
-            
+
             HStack(spacing: 20) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Original")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
-                    Text(ByteCountFormatter.string(fromByteCount: result.originalSize, countStyle: .file))
-                        .font(.subheadline.weight(.semibold))
-                        .monospacedDigit()
+                    Text(
+                        ByteCountFormatter.string(
+                            fromByteCount: result.originalSize, countStyle: .file)
+                    )
+                    .font(.subheadline.weight(.semibold))
+                    .monospacedDigit()
                 }
-                
+
                 Image(systemName: "arrow.right")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                
+
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Optimized")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
-                    Text(ByteCountFormatter.string(fromByteCount: result.outputSize, countStyle: .file))
-                        .font(.subheadline.weight(.semibold))
-                        .monospacedDigit()
-                        .foregroundStyle(result.isSmaller ? .green : .orange)
+                    Text(
+                        ByteCountFormatter.string(
+                            fromByteCount: result.outputSize, countStyle: .file)
+                    )
+                    .font(.subheadline.weight(.semibold))
+                    .monospacedDigit()
+                    .foregroundStyle(result.isSmaller ? .green : .orange)
                 }
-                
+
                 Spacer()
-                
+
                 VStack(alignment: .trailing, spacing: 4) {
                     let percent = abs(result.percentChange)
                     let formatted = String(format: "%.1f%%", percent)
@@ -855,7 +892,7 @@ struct ContentView: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            
+
             Button {
                 appState.revealLatestOutput()
             } label: {
@@ -875,7 +912,9 @@ struct ContentView: View {
         )
         .overlay(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .strokeBorder(result.isSmaller ? Color.green.opacity(0.3) : Color.orange.opacity(0.3), lineWidth: 1)
+                .strokeBorder(
+                    result.isSmaller ? Color.green.opacity(0.3) : Color.orange.opacity(0.3),
+                    lineWidth: 1)
         )
         .transition(.opacity.combined(with: .move(edge: .bottom)))
     }
@@ -910,7 +949,8 @@ struct ContentView: View {
         case .inProgress(let step):
             return step.rawValue
         case .completed(let result):
-            let formatter = ByteCountFormatter.string(fromByteCount: result.outputSize, countStyle: .file)
+            let formatter = ByteCountFormatter.string(
+                fromByteCount: result.outputSize, countStyle: .file)
             return "✓ \(formatter)"
         case .failed(let message):
             return "✗ \(message)"
@@ -944,7 +984,7 @@ struct ContentView: View {
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(.system(size: 40))
                 .foregroundStyle(.orange)
-            
+
             VStack(spacing: 6) {
                 Text("Oops!")
                     .font(.headline)
@@ -969,20 +1009,22 @@ struct ContentView: View {
     private var emptyState: some View {
         VStack(spacing: 24) {
             Spacer()
-            
+
             // Large drop zone illustration
             VStack(spacing: 16) {
                 ZStack {
                     Circle()
                         .fill(
                             LinearGradient(
-                                colors: [Color.accentColor.opacity(0.1), Color.accentColor.opacity(0.05)],
+                                colors: [
+                                    Color.accentColor.opacity(0.1), Color.accentColor.opacity(0.05),
+                                ],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
                         )
                         .frame(width: 120, height: 120)
-                    
+
                     Image(systemName: "photo.stack.fill")
                         .font(.system(size: 50))
                         .foregroundStyle(
@@ -993,21 +1035,23 @@ struct ContentView: View {
                             )
                         )
                 }
-                
+
                 VStack(spacing: 8) {
                     Text("Drop Images Here")
                         .font(.title3.weight(.semibold))
-                    
-                    Text("Drag images or folders onto the\nmenu bar icon to get started")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .lineSpacing(4)
+
+                    Text(
+                        "Drag images or folders onto this area\nor the menu bar icon to get started"
+                    )
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(4)
                 }
             }
-            
+
             Spacer()
-            
+
             // Tips section
             VStack(alignment: .leading, spacing: 12) {
                 HStack(spacing: 8) {
@@ -1018,11 +1062,12 @@ struct ContentView: View {
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
                 }
-                
+
                 VStack(alignment: .leading, spacing: 8) {
                     TipRow(icon: "folder.fill", text: "Drop entire folders for batch processing")
                     TipRow(icon: "wand.and.stars", text: "Use presets for common workflows")
-                    TipRow(icon: "slider.horizontal.3", text: "Fine-tune quality and resize settings")
+                    TipRow(
+                        icon: "slider.horizontal.3", text: "Fine-tune quality and resize settings")
                 }
             }
             .padding(16)
@@ -1031,6 +1076,47 @@ struct ContentView: View {
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .fill(Color.secondary.opacity(0.04))
             )
+        }
+        .onDrop(of: [.fileURL], isTargeted: nil) { providers in
+            handleDropProviders(providers)
+            return true
+        }
+    }
+
+    private func handleDropProviders(_ providers: [NSItemProvider]) {
+        Task {
+            var urls: [URL] = []
+
+            for provider in providers {
+                if let url = try? await loadURL(from: provider) {
+                    urls.append(url)
+                }
+            }
+
+            if !urls.isEmpty {
+                await MainActor.run {
+                    appState.register(drop: urls)
+                }
+            }
+        }
+    }
+
+    private func loadURL(from provider: NSItemProvider) async throws -> URL? {
+        try await withCheckedThrowingContinuation { continuation in
+            provider.loadItem(forTypeIdentifier: "public.file-url", options: nil) { item, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+
+                if let data = item as? Data,
+                    let url = URL(dataRepresentation: data, relativeTo: nil)
+                {
+                    continuation.resume(returning: url)
+                } else {
+                    continuation.resume(returning: nil)
+                }
+            }
         }
     }
 
@@ -1045,9 +1131,9 @@ struct ContentView: View {
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }
-            
+
             Spacer()
-            
+
             // Quit button
             Button {
                 NSApplication.shared.terminate(nil)
@@ -1076,14 +1162,14 @@ struct ContentView: View {
 struct TipRow: View {
     let icon: String
     let text: String
-    
+
     var body: some View {
         HStack(spacing: 10) {
             Image(systemName: icon)
                 .font(.caption)
                 .foregroundStyle(Color.accentColor)
                 .frame(width: 20)
-            
+
             Text(text)
                 .font(.caption)
                 .foregroundStyle(.secondary)

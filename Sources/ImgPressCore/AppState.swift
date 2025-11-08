@@ -35,7 +35,7 @@ final class AppState: ObservableObject {
 
     func register(drop urls: [URL]) {
         ThumbnailCache.shared.clearCache()
-        
+
         jobs = []
         dropError = nil
         isImporting = true
@@ -44,21 +44,22 @@ final class AppState: ObservableObject {
         conversionStatusMessage = nil
         conversionErrorMessage = nil
         conversionResult = nil
+        conversionSummary = nil
 
         Task.detached(priority: .userInitiated) { [weak self] in
             guard let self else { return }
             let candidates = flattenURLs(urls)
-            
+
             var newJobs: [ConversionJob] = []
             var processedCount = 0
             let batchSize = 20
-            
+
             for url in candidates {
                 if FileTypeValidator.isAcceptable(url) {
                     let item = DroppedItem(url: url)
                     newJobs.append(ConversionJob(item: item))
                     processedCount += 1
-                    
+
                     if processedCount % batchSize == 0 {
                         let jobsToAdd = newJobs
                         let count = processedCount
@@ -71,7 +72,7 @@ final class AppState: ObservableObject {
                     }
                 }
             }
-            
+
             let finalJobs = newJobs
             let finalCount = processedCount
             if !finalJobs.isEmpty {
@@ -128,15 +129,15 @@ final class AppState: ObservableObject {
                 if await MainActor.run(body: { self.shouldStop }) {
                     break
                 }
-                
+
                 while await MainActor.run(body: { self.isPaused && !self.shouldStop }) {
                     try? await Task.sleep(nanoseconds: 100_000_000)
                 }
-                
+
                 if await MainActor.run(body: { self.shouldStop }) {
                     break
                 }
-                
+
                 await MainActor.run {
                     self.updateJob(job.id) { job in
                         job.status = .inProgress(step: .loadingInput)
@@ -152,12 +153,13 @@ final class AppState: ObservableObject {
                     completedCount += 1
                     totalOriginalSize += result.originalSize
                     totalOutputSize += result.outputSize
-                    
+
                     await MainActor.run {
                         self.updateJob(job.id) { job in
                             job.status = .completed(result)
                         }
-                        self.conversionStatusMessage = "Converting \(completedCount)/\(jobsSnapshot.count)…"
+                        self.conversionStatusMessage =
+                            "Converting \(completedCount)/\(jobsSnapshot.count)…"
                         self.conversionResult = result
                     }
                 } catch {
@@ -175,9 +177,10 @@ final class AppState: ObservableObject {
 
             await MainActor.run {
                 let wasStopped = self.shouldStop
-                let summary = wasStopped 
+                let summary =
+                    wasStopped
                     ? "Stopped: \(completedCount) completed, \(jobsSnapshot.count - completedCount - failedCount) skipped"
-                    : (failedCount > 0 
+                    : (failedCount > 0
                         ? "Completed \(completedCount), failed \(failedCount)"
                         : "Completed all \(completedCount) file(s)")
                 self.conversionStatusMessage = summary
@@ -197,15 +200,15 @@ final class AppState: ObservableObject {
             }
         }
     }
-    
+
     func pauseConversion() {
         isPaused = true
     }
-    
+
     func resumeConversion() {
         isPaused = false
     }
-    
+
     func stopConversion() {
         shouldStop = true
         isPaused = false
@@ -237,21 +240,25 @@ final class AppState: ObservableObject {
 private func flattenURLs(_ urls: [URL]) -> [URL] {
     let fm = FileManager.default
     var collected = Set<URL>()
-    
+
     func processURL(_ url: URL) {
         var isDir: ObjCBool = false
         guard fm.fileExists(atPath: url.path, isDirectory: &isDir) else { return }
-        
+
         if isDir.boolValue {
-            guard let enumerator = fm.enumerator(
-                at: url,
-                includingPropertiesForKeys: [.isDirectoryKey, .isRegularFileKey],
-                options: [.skipsHiddenFiles]
-            ) else { return }
-            
+            guard
+                let enumerator = fm.enumerator(
+                    at: url,
+                    includingPropertiesForKeys: [.isDirectoryKey, .isRegularFileKey],
+                    options: [.skipsHiddenFiles]
+                )
+            else { return }
+
             for case let fileURL as URL in enumerator {
-                if let isRegularFile = try? fileURL.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile,
-                   isRegularFile {
+                if let isRegularFile = try? fileURL.resourceValues(forKeys: [.isRegularFileKey])
+                    .isRegularFile,
+                    isRegularFile
+                {
                     collected.insert(fileURL.standardizedFileURL)
                 }
             }
@@ -259,7 +266,7 @@ private func flattenURLs(_ urls: [URL]) -> [URL] {
             collected.insert(url.standardizedFileURL)
         }
     }
-    
+
     urls.forEach(processURL)
     return Array(collected)
 }
@@ -275,7 +282,9 @@ struct DroppedItem: Identifiable {
         self.url = url
         displayName = url.lastPathComponent
 
-        if let typeIdentifier = try? url.resourceValues(forKeys: [.typeIdentifierKey]).typeIdentifier {
+        if let typeIdentifier = try? url.resourceValues(forKeys: [.typeIdentifierKey])
+            .typeIdentifier
+        {
             let utType = UTType(typeIdentifier)
             uniformTypeDescription = utType?.localizedDescription ?? typeIdentifier
             uniformTypeIdentifier = typeIdentifier
@@ -294,25 +303,25 @@ final class ThumbnailCache: Sendable {
     static let shared = ThumbnailCache()
     private let cache: Cache = Cache()
     private let maxCacheSize = 100
-    
+
     private init() {}
-    
+
     private final class Cache: @unchecked Sendable {
         private var storage: [URL: NSImage] = [:]
         private let lock = NSLock()
-        
+
         func get(_ url: URL) -> NSImage? {
             lock.lock()
             defer { lock.unlock() }
             return storage[url]
         }
-        
+
         func set(_ url: URL, image: NSImage) {
             lock.lock()
             defer { lock.unlock() }
             storage[url] = image
         }
-        
+
         func removeFirst() {
             lock.lock()
             defer { lock.unlock() }
@@ -320,44 +329,48 @@ final class ThumbnailCache: Sendable {
                 storage.removeValue(forKey: firstKey)
             }
         }
-        
+
         func removeAll() {
             lock.lock()
             defer { lock.unlock() }
             storage.removeAll()
         }
-        
+
         var count: Int {
             lock.lock()
             defer { lock.unlock() }
             return storage.count
         }
     }
-    
+
     func thumbnail(for url: URL, maxDimension: CGFloat) -> NSImage? {
         if let cached = cache.get(url) {
             return cached
         }
-        
+
         guard let imageSource = CGImageSourceCreateWithURL(url as CFURL, nil),
-              let cgImage = CGImageSourceCreateThumbnailAtIndex(imageSource, 0, [
-                kCGImageSourceCreateThumbnailFromImageAlways: true,
-                kCGImageSourceCreateThumbnailWithTransform: true,
-                kCGImageSourceThumbnailMaxPixelSize: maxDimension * 2
-              ] as CFDictionary) else {
+            let cgImage = CGImageSourceCreateThumbnailAtIndex(
+                imageSource, 0,
+                [
+                    kCGImageSourceCreateThumbnailFromImageAlways: true,
+                    kCGImageSourceCreateThumbnailWithTransform: true,
+                    kCGImageSourceThumbnailMaxPixelSize: maxDimension * 2,
+                ] as CFDictionary)
+        else {
             return nil
         }
-        
-        let thumbnail = NSImage(cgImage: cgImage, size: NSSize(width: maxDimension, height: maxDimension))
-        
+
+        let thumbnail = NSImage(
+            cgImage: cgImage, size: NSSize(width: maxDimension, height: maxDimension))
+
         if cache.count >= maxCacheSize {
             cache.removeFirst()
         }
         cache.set(url, image: thumbnail)
-        
+
         return thumbnail
     }
-    
+
     func clearCache() {
         cache.removeAll()
     }
@@ -400,21 +413,21 @@ struct ConversionSummary: Equatable {
     let totalOriginalSize: Int64
     let totalOutputSize: Int64
     let duration: TimeInterval
-    
+
     var totalSizeDelta: Int64 {
         totalOutputSize - totalOriginalSize
     }
-    
+
     var percentChange: Double {
         guard totalOriginalSize > 0 else { return 0 }
         let delta = Double(totalOutputSize - totalOriginalSize)
         return delta / Double(totalOriginalSize) * 100
     }
-    
+
     var isSmaller: Bool {
         totalOutputSize <= totalOriginalSize
     }
-    
+
     var averageTimePerFile: TimeInterval {
         guard totalFiles > 0 else { return 0 }
         return duration / Double(totalFiles)

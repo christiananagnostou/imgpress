@@ -12,7 +12,7 @@ swift test --verbose                    # Detailed output
 
 ## Coverage
 
-**52 tests across 12 suites** covering all core business logic.
+**62 tests across 14 suites** covering all core business logic and UI interactions.
 
 <details>
 <summary>Test Breakdown</summary>
@@ -31,6 +31,8 @@ swift test --verbose                    # Detailed output
 | ThumbnailCache | 3 | Singleton, thread safety |
 | ConversionJobStatus | 4 | State transitions |
 | DropError | 2 | Error descriptions |
+| DragDrop | 7 | Drop handling, state resets |
+| StatusItemDropView | 3 | Callbacks, initialization |
 
 </details>
 
