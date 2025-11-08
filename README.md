@@ -1,129 +1,60 @@
 # ImgPress
 
-A lightweight macOS menu bar application for batch image conversion and optimization. ImgPress lives in your menu bar and provides quick access to convert images between formats (JPEG, PNG, WebP, AVIF) with customizable quality and resize options.
+> A lightweight macOS menu bar app for batch image conversion and optimization.
+
+[![Swift](https://img.shields.io/badge/Swift-5.9+-orange.svg)](https://swift.org)
+[![Platform](https://img.shields.io/badge/platform-macOS%2014+-blue.svg)](https://www.apple.com/macos)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 ## Features
 
-- **Menu Bar Integration**: Quick access from your menu bar with drag-and-drop support
-- **Batch Processing**: Convert multiple images at once, including entire folders
-- **Multiple Formats**: Support for JPEG, PNG, WebP, and AVIF output formats
-- **Smart Compression**: Adjustable quality settings with real-time size comparison
-- **Resize Options**: Scale images by percentage while preserving aspect ratio
-- **Quick Presets**: Pre-configured settings for common workflows
-- **Advanced Controls**:
-  - Pause, resume, or stop conversions in progress
-  - Preserve or strip image metadata
-  - Custom output directory and filename suffixes
-- **Performance Optimized**: Efficient thumbnail generation and batch processing for large image sets
-- **RAW Support**: Handles various RAW camera formats (CR2, CR3, etc.)
-
-## Requirements
-
-- macOS 14.0 or later
-- Swift 5.9 or later
+- **Menu Bar Native** - Lives in your menu bar with drag-and-drop support
+- **Batch Processing** - Convert multiple images and folders simultaneously
+- **Multiple Formats** - JPEG, PNG, WebP, and AVIF support
+- **Real-time Stats** - Size comparison and conversion progress
+- **Flexible Control** - Pause, resume, or stop conversions
+- **Quick Presets** - Pre-configured workflows for common tasks
+- **RAW Support** - Handles CR2, CR3, DNG, and other camera formats
 
 ## Installation
-
-### Build from Source
-
-1. Clone the repository:
 
 ```bash
 git clone https://github.com/yourusername/imgpress.git
 cd imgpress
-```
-
-2. Build the application:
-
-```bash
 swift build -c release
-```
-
-3. The compiled executable will be at `.build/release/ImgPress`
-
-4. Copy to Applications or run directly:
-
-```bash
 .build/release/ImgPress
 ```
 
 ## Usage
 
-### Getting Started
+1. Click the menu bar icon (camera aperture)
+2. Drag images or folders into the panel
+3. Choose format and quality settings
+4. Click Convert
 
-1. Launch ImgPress - it will appear in your menu bar as a camera aperture icon
-2. Click the menu bar icon to open the conversion panel
-3. Drag and drop images or folders onto the drop zone
-4. Select your desired output format and quality settings
-5. Click "Convert" to process your images
+### Presets
 
-### Drag and Drop
+- **Shareable JPEG** - 75% quality, web-optimized
+- **Transparent PNG** - Lossless, ideal for logos
+- **High-efficiency AVIF** - Modern format, 45% smaller files
 
-You can drag images directly onto the menu bar icon without opening the panel. ImgPress will automatically:
+## Development
 
-- Accept the files
-- Open the panel
-- Display the queued images ready for conversion
+Built with Swift 6, SwiftUI, and Apple's ImageIO framework.
 
-### Quick Presets
+```bash
+swift build          # Build debug version
+swift test           # Run test suite
+swift run ImgPress   # Launch app
+```
 
-ImgPress includes three optimized presets:
+See [TESTING.md](TESTING.md) for testing details.
 
-- **Shareable JPEG**: 75% quality, ideal for web sharing while preserving metadata
-- **Transparent PNG**: Lossless compression, perfect for logos and graphics with transparency
-- **High-efficiency AVIF**: Modern format with 45% smaller file sizes for compatible devices
+## Requirements
 
-### Advanced Options
-
-- **Output Directory**: Choose where converted images are saved (defaults to Desktop/ImgPress)
-- **Filename Suffix**: Add custom suffixes to distinguish converted files
-- **Metadata**: Toggle preservation of EXIF data, location info, and other metadata
-- **Resize**: Scale images down by percentage for web optimization or storage
-
-### Playback Controls
-
-During batch conversions, use the playback controls to:
-
-- **Pause**: Temporarily stop processing to free up system resources
-- **Resume**: Continue from where you paused
-- **Stop**: Cancel the remaining conversions (completed files are kept)
-
-## How It Works
-
-ImgPress is built with Swift and SwiftUI, leveraging Apple's native ImageIO framework for efficient image processing. The application runs as a menu bar utility (LSUIElement) without a dock icon.
-
-**Key Architecture:**
-
-- **Efficient Thumbnails**: Uses CGImageSource to generate thumbnails without loading full images into memory, preventing memory issues with large batches
-- **Batch Processing**: Processes files in the background while updating the UI every 20 files to keep the interface responsive
-- **Display Limiting**: Only renders the first 50 items in large batches to maintain smooth scrolling
-- **Format Support**: Leverages system-native codecs for JPEG, PNG, WebP (macOS 11+), and AVIF (macOS 13+)
-
-## Supported File Types
-
-**Input formats:**
-
-- Standard images (JPEG, PNG, TIFF, BMP, GIF, etc.)
-- RAW camera formats (CR2, CR3, Adobe DNG, etc.)
-- HEIC/HEIF
-- Live Photos
-- QuickTime images
-
-**Output formats:**
-
-- JPEG
-- PNG
-- WebP
-- AVIF
+- macOS 14.0+
+- Swift 5.9+
 
 ## License
 
-MIT License - see LICENSE file for details
-
-## Contributing
-
-Contributions are welcome! Please read CONTRIBUTING.md for guidelines on how to submit improvements and bug fixes.
-
-## Acknowledgments
-
-Built with Swift, SwiftUI, and Apple's ImageIO framework.
+MIT - see [LICENSE](LICENSE) for details.

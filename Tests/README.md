@@ -1,135 +1,55 @@
-# ImgPress Testing Suite
+# Tests
 
-This project uses **Swift Testing**, the modern testing framework introduced in Swift 5.9+. The test suite provides comprehensive coverage of the core business logic.
+Test suite for ImgPress core functionality.
 
 ## Running Tests
 
 ```bash
-# Run all tests
-swift test
-
-# Run with verbose output
-swift test --verbose
-
-# Run specific test suite
-swift test --filter ConversionServiceTests
-
-# Run with parallel execution disabled (for debugging)
-swift test --parallel
+swift test                           # All tests
+swift test --filter ImageFormat      # Specific suite
+swift test --verbose                 # Detailed output
 ```
 
-## Test Structure
+## Structure
 
-The tests are organized by functionality:
-
-### Core Model Tests
-- **ConversionModelsTests.swift** - Tests for `ImageFormat`, `ConversionForm`, and `ConversionPreset`
-- **ConversionResultTests.swift** - Tests for conversion result calculations and properties
-- **ConversionSummaryTests.swift** - Tests for batch conversion summaries
-
-### Service Tests
-- **ConversionServiceTests.swift** - Tests for the conversion service and error handling
-- **ConversionServiceErrorTests.swift** - Error message and Sendable conformance tests
-- **FileTypeValidatorTests.swift** - File type validation logic tests
-
-### UI State Tests
-- **AppStateTests.swift** - Tests for `ThumbnailCache`, `ConversionJobStatus`, and `DropError`
-- **ConversionStageTests.swift** - Tests for conversion progress stages
-
-## Test Coverage
-
-The test suite covers:
-
-✅ **Data Models** - All model calculations and transformations  
-✅ **Sendable Conformance** - Swift 6 concurrency safety  
-✅ **Thread Safety** - Multi-threaded access patterns  
-✅ **Error Handling** - All error cases and messages  
-✅ **Edge Cases** - Zero values, empty collections, etc.  
-✅ **Format Support** - JPEG, PNG, WebP, and AVIF  
-
-## Swift Testing Features Used
-
-### Modern Assertions
-```swift
-#expect(value == expected)  // Replaces XCTAssertEqual
-#expect(condition)          // Replaces XCTAssertTrue
+```
+Tests/
+├── ConversionModelsTests.swift      # ImageFormat, Form, Preset
+├── ConversionResultTests.swift      # Result calculations
+├── ConversionSummaryTests.swift     # Batch summaries
+├── ConversionServiceTests.swift     # Service & errors
+├── ConversionStageTests.swift       # Progress stages
+├── FileTypeValidatorTests.swift     # File validation
+└── AppStateTests.swift              # Cache, JobStatus, Errors
 ```
 
-### Parameterized Tests
-```swift
-@Test("Test name", arguments: [.jpeg, .png, .webp, .avif])
-func testWithMultipleFormats(format: ImageFormat) {
-    // Test runs once for each format
-}
-```
+## Writing Tests
 
-### Test Suites
 ```swift
-@Suite("GroupName")
+import Testing
+@testable import ImgPressCore
+
+@Suite("My Feature")
 struct MyTests {
-    // Related tests grouped together
+    @Test("Description")
+    func testFeature() {
+        #expect(value == expected)
+    }
+    
+    // Parameterized
+    @Test(arguments: [1, 2, 3])
+    func testMultiple(num: Int) {
+        #expect(num > 0)
+    }
 }
 ```
 
-### Async Testing
-```swift
-@Test("Async test")
-func testAsync() async {
-    await someAsyncOperation()
-    #expect(result == expected)
-}
-```
+## Coverage
 
-## Adding New Tests
+- ✅ Models & calculations
+- ✅ Error handling
+- ✅ Thread safety (Swift 6)
+- ✅ Edge cases
+- ✅ Format support
 
-1. Create a new test file in the `Tests/` directory
-2. Import the testing framework and module:
-   ```swift
-   import Testing
-   @testable import ImgPressCore
-   ```
-3. Create a test suite:
-   ```swift
-   @Suite("Feature Tests")
-   struct FeatureTests {
-       @Test("Test description")
-       func testFeature() {
-           #expect(condition)
-       }
-   }
-   ```
-
-## Best Practices
-
-- ✅ Use descriptive test names
-- ✅ Test one thing per test function
-- ✅ Use parameterized tests for similar cases
-- ✅ Mark concurrent tests with `async` when needed
-- ✅ Test Sendable conformance for concurrent types
-- ✅ Test edge cases (zero, nil, empty, etc.)
-
-## CI/CD Integration
-
-To integrate with CI/CD pipelines:
-
-```bash
-# Run tests with failure output
-swift test --parallel || exit 1
-
-# Generate test results (requires Xcode)
-xcodebuild test -scheme ImgPress -destination 'platform=macOS'
-```
-
-## Concurrency Testing
-
-The test suite validates Swift 6 strict concurrency:
-- All `Sendable` types are tested for thread safety
-- Concurrent access patterns are validated
-- Data races are prevented through proper isolation
-
-## Performance Considerations
-
-Tests are designed to be fast:
-- No actual image processing (uses mock data)
-- Minimal file I/O operations
-- Parallel test execution enabled by default
+See [TESTING.md](../TESTING.md) for details.
