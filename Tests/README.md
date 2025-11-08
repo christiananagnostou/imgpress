@@ -12,7 +12,7 @@ swift test --verbose                 # Detailed output
 
 ## Structure
 
-```
+```text
 Tests/
 ├── ConversionModelsTests.swift      # ImageFormat, Form, Preset
 ├── ConversionResultTests.swift      # Result calculations
