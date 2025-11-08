@@ -6,6 +6,7 @@ struct ContentView: View {
     @State private var showingSettings = false
     @State private var presetsExpanded = false
     @State private var advancedExpanded = false
+    @Namespace private var scrollNamespace
 
     var body: some View {
         ZStack {
@@ -33,18 +34,27 @@ struct ContentView: View {
                         .transition(.move(edge: .top).combined(with: .opacity))
                 }
                 
-                ScrollView {
-                    VStack(spacing: 16) {
-                        if let error = appState.dropError {
-                            errorView(error)
-                        } else if !appState.jobs.isEmpty {
-                            jobsPanel
-                        } else {
-                            emptyState
+                ScrollViewReader { scrollProxy in
+                    ScrollView {
+                        VStack(spacing: 16) {
+                            if let error = appState.dropError {
+                                errorView(error)
+                            } else if !appState.jobs.isEmpty {
+                                jobsPanel
+                            } else {
+                                emptyState
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 16)
+                    }
+                    .onChange(of: appState.conversionSummary) { _, newValue in
+                        if newValue != nil {
+                            withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                                scrollProxy.scrollTo("conversionSummary", anchor: .bottom)
+                            }
                         }
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 16)
                 }
                 
                 Divider()
@@ -177,6 +187,37 @@ struct ContentView: View {
                                     .font(.caption2)
                                     .foregroundStyle(.secondary)
                             }
+                            
+                            // Playback controls
+                            HStack(spacing: 4) {
+                                // Pause/Resume button
+                                Button {
+                                    if appState.isPaused {
+                                        appState.resumeConversion()
+                                    } else {
+                                        appState.pauseConversion()
+                                    }
+                                } label: {
+                                    Image(systemName: appState.isPaused ? "play.fill" : "pause.fill")
+                                        .font(.system(size: 10))
+                                        .frame(width: 18, height: 18)
+                                }
+                                .buttonStyle(.plain)
+                                .foregroundStyle(.secondary)
+                                .help(appState.isPaused ? "Resume" : "Pause")
+                                
+                                // Stop button
+                                Button {
+                                    appState.stopConversion()
+                                } label: {
+                                    Image(systemName: "stop.fill")
+                                        .font(.system(size: 10))
+                                        .frame(width: 18, height: 18)
+                                }
+                                .buttonStyle(.plain)
+                                .foregroundStyle(.secondary)
+                                .help("Stop")
+                            }
                         }
                     } else if appState.jobs.count > 1 {
                         Button {
@@ -192,11 +233,33 @@ struct ContentView: View {
                 
                 // Horizontal scrolling file list - compact and smooth
                 ScrollViewReader { scrollProxy in
+                    let displayLimit = 50
+                    
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 8) {
-                            ForEach(appState.jobs) { job in
+                            // Only show first 50 items for performance, rest on demand
+                            let itemsToShow = appState.jobs.prefix(displayLimit)
+                            
+                            ForEach(Array(itemsToShow)) { job in
                                 jobRow(for: job)
                                     .id(job.id)
+                            }
+                            
+                            // Show "X more" indicator if there are hidden items
+                            if appState.jobs.count > displayLimit {
+                                VStack(spacing: 4) {
+                                    Image(systemName: "ellipsis.circle.fill")
+                                        .font(.title3)
+                                        .foregroundStyle(.secondary)
+                                    Text("+\(appState.jobs.count - displayLimit) more")
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                }
+                                .frame(width: 100, height: 64)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                        .fill(Color.secondary.opacity(0.03))
+                                )
                             }
                         }
                         .padding(.horizontal, 2)
@@ -205,7 +268,7 @@ struct ContentView: View {
                     .frame(height: 72)
                     .onChange(of: appState.jobs.map { $0.status }) { 
                         // Auto-scroll to the first in-progress job with smooth spring animation
-                        if let inProgressJob = appState.jobs.first(where: { 
+                        if let inProgressJob = appState.jobs.prefix(displayLimit).first(where: { 
                             if case .inProgress = $0.status { return true }
                             return false
                         }) {
@@ -230,7 +293,10 @@ struct ContentView: View {
             )
             
             // Status/Results - shown below the file list
-            if let result = appState.conversionResult {
+            if let summary = appState.conversionSummary {
+                conversionSummaryView(summary)
+                    .id("conversionSummary")
+            } else if let result = appState.conversionResult, appState.jobs.count == 1 {
                 conversionResultView(result)
             }
         }
@@ -408,6 +474,7 @@ struct ContentView: View {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(Color.secondary.opacity(0.04))
         )
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
     
     private var formatControls: some View {
@@ -568,6 +635,7 @@ struct ContentView: View {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(Color.secondary.opacity(0.04))
         )
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
     
     private var convertButton: some View {
@@ -618,6 +686,122 @@ struct ContentView: View {
             }
         }
         .animation(.spring(response: 0.4, dampingFraction: 0.75), value: appState.conversionResult != nil)
+    }
+    
+    private func conversionSummaryView(_ summary: ConversionSummary) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: summary.isSmaller ? "checkmark.circle.fill" : "info.circle.fill")
+                    .font(.title2)
+                    .foregroundStyle(summary.isSmaller ? .green : .orange)
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Conversion Complete")
+                        .font(.headline)
+                    if summary.failedCount > 0 {
+                        Text("\(summary.completedCount) succeeded, \(summary.failedCount) failed")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Text("All \(summary.totalFiles) file\(summary.totalFiles == 1 ? "" : "s") converted")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                
+                Spacer()
+                
+                // Duration badge
+                VStack(alignment: .trailing, spacing: 2) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "clock.fill")
+                            .font(.caption2)
+                        Text(formatDuration(summary.duration))
+                            .font(.caption.weight(.medium))
+                    }
+                    .foregroundStyle(.secondary)
+                    Text("\(String(format: "%.1f", summary.averageTimePerFile))s avg")
+                        .font(.system(size: 9))
+                        .foregroundStyle(.tertiary)
+                }
+            }
+            
+            Divider()
+            
+            // Size statistics
+            HStack(spacing: 20) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Original")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    Text(ByteCountFormatter.string(fromByteCount: summary.totalOriginalSize, countStyle: .file))
+                        .font(.subheadline.weight(.semibold))
+                        .monospacedDigit()
+                }
+                
+                Image(systemName: "arrow.right")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Optimized")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    Text(ByteCountFormatter.string(fromByteCount: summary.totalOutputSize, countStyle: .file))
+                        .font(.subheadline.weight(.semibold))
+                        .monospacedDigit()
+                        .foregroundStyle(summary.isSmaller ? .green : .orange)
+                }
+                
+                Spacer()
+                
+                VStack(alignment: .trailing, spacing: 4) {
+                    let percent = abs(summary.percentChange)
+                    let formatted = String(format: "%.1f%%", percent)
+                    Text(summary.isSmaller ? "-\(formatted)" : "+\(formatted)")
+                        .font(.title3.weight(.bold))
+                        .monospacedDigit()
+                        .foregroundStyle(summary.isSmaller ? .green : .orange)
+                    
+                    let savedBytes = abs(summary.totalSizeDelta)
+                    Text(summary.isSmaller ? "saved \(ByteCountFormatter.string(fromByteCount: savedBytes, countStyle: .file))" : "added \(ByteCountFormatter.string(fromByteCount: savedBytes, countStyle: .file))")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            
+            Button {
+                appState.revealLatestOutput()
+            } label: {
+                HStack {
+                    Image(systemName: "folder.fill")
+                    Text("Show All in Finder")
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: 36)
+            }
+            .buttonStyle(.bordered)
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(summary.isSmaller ? Color.green.opacity(0.08) : Color.orange.opacity(0.08))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(summary.isSmaller ? Color.green.opacity(0.3) : Color.orange.opacity(0.3), lineWidth: 1)
+        )
+        .transition(.opacity.combined(with: .move(edge: .bottom)))
+    }
+    
+    private func formatDuration(_ duration: TimeInterval) -> String {
+        if duration < 60 {
+            return String(format: "%.1fs", duration)
+        } else {
+            let minutes = Int(duration / 60)
+            let seconds = Int(duration.truncatingRemainder(dividingBy: 60))
+            return "\(minutes)m \(seconds)s"
+        }
     }
     
     private func conversionResultView(_ result: ConversionResult) -> some View {

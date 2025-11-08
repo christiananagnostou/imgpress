@@ -15,10 +15,14 @@ final class AppState: ObservableObject {
     @Published var conversionForm: ConversionForm
     @Published var conversionStatusMessage: String?
     @Published var conversionResult: ConversionResult?
+    @Published var conversionSummary: ConversionSummary?
     @Published var conversionErrorMessage: String?
     @Published var isConverting = false
+    @Published var isPaused = false
+    @Published var shouldStop = false
 
     private let conversionService: ConversionService
+    private var conversionTask: Task<Void, Never>?
 
     init(conversionService: ConversionService = ConversionService()) {
         self.conversionService = conversionService
@@ -30,6 +34,9 @@ final class AppState: ObservableObject {
     }
 
     func register(drop urls: [URL]) {
+        // Clear thumbnail cache from previous session to free memory
+        ThumbnailCache.shared.clearCache()
+        
         // Kick off a background scan so the UI stays responsive
         jobs = []
         dropError = nil
@@ -43,15 +50,39 @@ final class AppState: ObservableObject {
         Task.detached(priority: .userInitiated) { [weak self] in
             guard let self else { return }
             let candidates = flattenURLs(urls)
-
+            
+            // Batch processing to reduce UI updates
+            var newJobs: [ConversionJob] = []
+            var processedCount = 0
+            let batchSize = 20 // Update UI every 20 files instead of every single file
+            
             for url in candidates {
                 if FileTypeValidator.isAcceptable(url) {
                     let item = DroppedItem(url: url)
-                    await MainActor.run {
-                        self.jobs.append(ConversionJob(item: item))
-                        self.importFoundCount += 1
-                        self.importStatusMessage = "Found \(self.importFoundCount) image(s)…"
+                    newJobs.append(ConversionJob(item: item))
+                    processedCount += 1
+                    
+                    // Batch update UI
+                    if processedCount % batchSize == 0 {
+                        let jobsToAdd = newJobs
+                        let count = processedCount
+                        await MainActor.run {
+                            self.jobs.append(contentsOf: jobsToAdd)
+                            self.importFoundCount = count
+                            self.importStatusMessage = "Found \(count) image(s)…"
+                        }
+                        newJobs.removeAll(keepingCapacity: true)
                     }
+                }
+            }
+            
+            // Add remaining items
+            let finalJobs = newJobs
+            let finalCount = processedCount
+            if !finalJobs.isEmpty {
+                await MainActor.run {
+                    self.jobs.append(contentsOf: finalJobs)
+                    self.importFoundCount = finalCount
                 }
             }
 
@@ -81,18 +112,39 @@ final class AppState: ObservableObject {
         guard !isConverting else { return }
 
         isConverting = true
+        isPaused = false
+        shouldStop = false
         conversionStatusMessage = "Converting 0/\(jobs.count)…"
         conversionErrorMessage = nil
         conversionResult = nil
+        conversionSummary = Optional<ConversionSummary>.none
 
         let jobsSnapshot = jobs
         let formSnapshot = conversionForm
+        let startTime = Date()
 
-        Task {
+        conversionTask = Task {
             var completedCount = 0
             var failedCount = 0
+            var totalOriginalSize: Int64 = 0
+            var totalOutputSize: Int64 = 0
 
             for job in jobsSnapshot {
+                // Check if stop was requested
+                if await MainActor.run(body: { self.shouldStop }) {
+                    break
+                }
+                
+                // Wait while paused
+                while await MainActor.run(body: { self.isPaused && !self.shouldStop }) {
+                    try? await Task.sleep(nanoseconds: 100_000_000) // 0.1s
+                }
+                
+                // Check again after pause
+                if await MainActor.run(body: { self.shouldStop }) {
+                    break
+                }
+                
                 // Single update to mark as in-progress (no intermediate stage updates)
                 await MainActor.run {
                     self.updateJob(job.id) { job in
@@ -108,6 +160,8 @@ final class AppState: ObservableObject {
                         progress: nil  // Skip intermediate updates for performance
                     )
                     completedCount += 1
+                    totalOriginalSize += result.originalSize
+                    totalOutputSize += result.outputSize
                     
                     // Batch update: status + message + result in one MainActor call
                     await MainActor.run {
@@ -127,14 +181,45 @@ final class AppState: ObservableObject {
                 }
             }
 
+            let endTime = Date()
+            let duration = endTime.timeIntervalSince(startTime)
+
             await MainActor.run {
-                let summary = failedCount > 0 
-                    ? "Completed \(completedCount), failed \(failedCount)"
-                    : "Completed all \(completedCount) file(s)"
+                let wasStopped = self.shouldStop
+                let summary = wasStopped 
+                    ? "Stopped: \(completedCount) completed, \(jobsSnapshot.count - completedCount - failedCount) skipped"
+                    : (failedCount > 0 
+                        ? "Completed \(completedCount), failed \(failedCount)"
+                        : "Completed all \(completedCount) file(s)")
                 self.conversionStatusMessage = summary
+                if completedCount > 0 {
+                    self.conversionSummary = ConversionSummary(
+                        totalFiles: jobsSnapshot.count,
+                        completedCount: completedCount,
+                        failedCount: failedCount,
+                        totalOriginalSize: totalOriginalSize,
+                        totalOutputSize: totalOutputSize,
+                        duration: duration
+                    )
+                }
                 self.isConverting = false
+                self.isPaused = false
+                self.shouldStop = false
             }
         }
+    }
+    
+    func pauseConversion() {
+        isPaused = true
+    }
+    
+    func resumeConversion() {
+        isPaused = false
+    }
+    
+    func stopConversion() {
+        shouldStop = true
+        isPaused = false
     }
 
     func browseForOutputDirectory() {
@@ -215,8 +300,57 @@ struct DroppedItem: Identifiable {
     }
 
     func thumbnail(maxDimension: CGFloat = 40) -> NSImage? {
-        guard let image = NSImage(contentsOf: url) else { return nil }
-        return image.resized(toMaxDimension: maxDimension)
+        // Use shared cache to avoid regenerating thumbnails
+        return ThumbnailCache.shared.thumbnail(for: url, maxDimension: maxDimension)
+    }
+}
+
+// Singleton thumbnail cache to prevent memory bloat
+final class ThumbnailCache {
+    static let shared = ThumbnailCache()
+    private var cache: [URL: NSImage] = [:]
+    private let lock = NSLock()
+    private let maxCacheSize = 100 // Limit cache to prevent memory issues
+    
+    private init() {}
+    
+    func thumbnail(for url: URL, maxDimension: CGFloat) -> NSImage? {
+        lock.lock()
+        defer { lock.unlock() }
+        
+        // Return cached if available
+        if let cached = cache[url] {
+            return cached
+        }
+        
+        // Generate thumbnail efficiently using CGImageSource (doesn't load full image into memory)
+        guard let imageSource = CGImageSourceCreateWithURL(url as CFURL, nil),
+              let cgImage = CGImageSourceCreateThumbnailAtIndex(imageSource, 0, [
+                kCGImageSourceCreateThumbnailFromImageAlways: true,
+                kCGImageSourceCreateThumbnailWithTransform: true,
+                kCGImageSourceThumbnailMaxPixelSize: maxDimension * 2 // 2x for retina
+              ] as CFDictionary) else {
+            return nil
+        }
+        
+        let thumbnail = NSImage(cgImage: cgImage, size: NSSize(width: maxDimension, height: maxDimension))
+        
+        // Cache with size limit (LRU eviction)
+        if cache.count >= maxCacheSize {
+            // Remove first (oldest) item
+            if let firstKey = cache.keys.first {
+                cache.removeValue(forKey: firstKey)
+            }
+        }
+        cache[url] = thumbnail
+        
+        return thumbnail
+    }
+    
+    func clearCache() {
+        lock.lock()
+        cache.removeAll()
+        lock.unlock()
     }
 }
 
@@ -248,4 +382,32 @@ struct ConversionJob: Identifiable {
     let id = UUID()
     let item: DroppedItem
     var status: ConversionJobStatus = .pending
+}
+
+struct ConversionSummary: Equatable {
+    let totalFiles: Int
+    let completedCount: Int
+    let failedCount: Int
+    let totalOriginalSize: Int64
+    let totalOutputSize: Int64
+    let duration: TimeInterval
+    
+    var totalSizeDelta: Int64 {
+        totalOutputSize - totalOriginalSize
+    }
+    
+    var percentChange: Double {
+        guard totalOriginalSize > 0 else { return 0 }
+        let delta = Double(totalOutputSize - totalOriginalSize)
+        return delta / Double(totalOriginalSize) * 100
+    }
+    
+    var isSmaller: Bool {
+        totalOutputSize <= totalOriginalSize
+    }
+    
+    var averageTimePerFile: TimeInterval {
+        guard totalFiles > 0 else { return 0 }
+        return duration / Double(totalFiles)
+    }
 }

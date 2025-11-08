@@ -6,7 +6,7 @@ import UniformTypeIdentifiers
 enum ConversionServiceError: LocalizedError, Sendable {
     case unsupportedFormat
     case imageReadFailed
-    case destinationCreationFailed
+    case destinationCreationFailed(String)
     case conversionFailed
     case directoryCreationFailed(String)
 
@@ -16,8 +16,8 @@ enum ConversionServiceError: LocalizedError, Sendable {
             return "This format is not supported on your Mac."
         case .imageReadFailed:
             return "Couldn't read the original image."
-        case .destinationCreationFailed:
-            return "Failed to create the destination file."
+        case .destinationCreationFailed(let format):
+            return "Failed to create destination for \(format) format. This format may not be supported on your macOS version."
         case .conversionFailed:
             return "Image conversion failed."
         case .directoryCreationFailed(let path):
@@ -96,7 +96,7 @@ final class ConversionService {
         }
 
         guard let destination = CGImageDestinationCreateWithURL(outputURL as CFURL, destUTType as CFString, 1, nil) else {
-            throw ConversionServiceError.destinationCreationFailed
+            throw ConversionServiceError.destinationCreationFailed(form.format.rawValue)
         }
 
         var options: [CFString: Any] = [:]
@@ -175,13 +175,11 @@ private extension ImageFormat {
         case .png:
             return UTType.png.identifier
         case .webp:
-            if #available(macOS 14, *) {
-                return UTType.webP.identifier
-            } else {
-                return nil
-            }
+            // WebP is supported on macOS 11+ but needs the correct identifier
+            return "org.webmproject.webp"
         case .avif:
-            if #available(macOS 15, *) {
+            // AVIF support varies by macOS version
+            if #available(macOS 13, *) {
                 return "public.avif"
             } else {
                 return nil
