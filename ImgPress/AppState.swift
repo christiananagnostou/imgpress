@@ -290,19 +290,52 @@ struct DroppedItem: Identifiable {
     }
 }
 
-final class ThumbnailCache {
+final class ThumbnailCache: Sendable {
     static let shared = ThumbnailCache()
-    private var cache: [URL: NSImage] = [:]
-    private let lock = NSLock()
+    private let cache: Cache = Cache()
     private let maxCacheSize = 100
     
     private init() {}
     
-    func thumbnail(for url: URL, maxDimension: CGFloat) -> NSImage? {
-        lock.lock()
-        defer { lock.unlock() }
+    private final class Cache: @unchecked Sendable {
+        private var storage: [URL: NSImage] = [:]
+        private let lock = NSLock()
         
-        if let cached = cache[url] {
+        func get(_ url: URL) -> NSImage? {
+            lock.lock()
+            defer { lock.unlock() }
+            return storage[url]
+        }
+        
+        func set(_ url: URL, image: NSImage) {
+            lock.lock()
+            defer { lock.unlock() }
+            storage[url] = image
+        }
+        
+        func removeFirst() {
+            lock.lock()
+            defer { lock.unlock() }
+            if let firstKey = storage.keys.first {
+                storage.removeValue(forKey: firstKey)
+            }
+        }
+        
+        func removeAll() {
+            lock.lock()
+            defer { lock.unlock() }
+            storage.removeAll()
+        }
+        
+        var count: Int {
+            lock.lock()
+            defer { lock.unlock() }
+            return storage.count
+        }
+    }
+    
+    func thumbnail(for url: URL, maxDimension: CGFloat) -> NSImage? {
+        if let cached = cache.get(url) {
             return cached
         }
         
@@ -318,19 +351,15 @@ final class ThumbnailCache {
         let thumbnail = NSImage(cgImage: cgImage, size: NSSize(width: maxDimension, height: maxDimension))
         
         if cache.count >= maxCacheSize {
-            if let firstKey = cache.keys.first {
-                cache.removeValue(forKey: firstKey)
-            }
+            cache.removeFirst()
         }
-        cache[url] = thumbnail
+        cache.set(url, image: thumbnail)
         
         return thumbnail
     }
     
     func clearCache() {
-        lock.lock()
         cache.removeAll()
-        lock.unlock()
     }
 }
 

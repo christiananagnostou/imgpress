@@ -47,13 +47,13 @@ struct ConversionResult: Sendable, Equatable {
     }
 }
 
-final class ConversionService {
+final class ConversionService: Sendable {
     func convert(
         item: DroppedItem,
         form: ConversionForm,
-        progress: ((ConversionStage) -> Void)? = nil
+        progress: (@Sendable (ConversionStage) -> Void)? = nil
     ) async throws -> ConversionResult {
-        try await Task.detached(priority: .userInitiated) {
+        try await Task.detached(priority: .userInitiated) { @Sendable in
             try self.performConversion(item: item, form: form, progress: progress)
         }.value
     }
@@ -61,7 +61,7 @@ final class ConversionService {
     private func performConversion(
         item: DroppedItem,
         form: ConversionForm,
-        progress: ((ConversionStage) -> Void)?
+        progress: (@Sendable (ConversionStage) -> Void)?
     ) throws -> ConversionResult {
         let startTime = Date()
 
