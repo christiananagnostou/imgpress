@@ -15,7 +15,7 @@ final class MenuBarController: NSObject {
         
         statusItem.isVisible = true
         statusItem.behavior = [.removalAllowed]
-        statusItem.autosaveName = "RebarStatusItem" // Persist position
+        statusItem.autosaveName = "RebarStatusItem"
         
         configureStatusItem()
     }

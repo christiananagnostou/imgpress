@@ -6,7 +6,6 @@ struct ContentView: View {
     @State private var showingSettings = false
     @State private var presetsExpanded = false
     @State private var advancedExpanded = false
-    @Namespace private var scrollNamespace
 
     var body: some View {
         ZStack {
@@ -69,8 +68,6 @@ struct ContentView: View {
         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: appState.isImporting)
         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: appState.jobs.isEmpty)
     }
-
-    // MARK: - Header
 
     private var header: some View {
         HStack(spacing: 12) {
@@ -144,8 +141,6 @@ struct ContentView: View {
                 .strokeBorder(Color.accentColor.opacity(0.3), lineWidth: 1)
         )
     }
-
-    // MARK: - Job Panel
 
     private var jobsPanel: some View {
         VStack(spacing: 16) {
@@ -382,8 +377,6 @@ struct ContentView: View {
             return Color.secondary.opacity(0.03)
         }
     }
-
-    // MARK: - Presets & Controls
 
     private var presetSelector: some View {
         VStack(spacing: 0) {
@@ -887,8 +880,6 @@ struct ContentView: View {
         .transition(.opacity.combined(with: .move(edge: .bottom)))
     }
 
-    // MARK: - Helpers
-
     @ViewBuilder
     private func thumbnail(for item: DroppedItem) -> some View {
         if let image = item.thumbnail(maxDimension: 96) {
@@ -1074,100 +1065,11 @@ struct ContentView: View {
         }
     }
 
-    // MARK: - Bindings
-    
-    /// Generic binding helper using KeyPath for DRY code
     private func binding<T>(for keyPath: WritableKeyPath<ConversionForm, T>) -> Binding<T> {
         Binding(
             get: { self.appState.conversionForm[keyPath: keyPath] },
             set: { self.appState.conversionForm[keyPath: keyPath] = $0 }
         )
-    }
-}
-
-// MARK: - Supporting Views
-
-struct PresetCard: View {
-    let preset: ConversionPreset
-    let isSelected: Bool
-    let action: () -> Void
-    
-    private var iconBackground: some ShapeStyle {
-        isSelected ? Color.accentColor : Color.accentColor.opacity(0.1)
-    }
-    
-    private var cardBackground: some ShapeStyle {
-        isSelected ? Color.accentColor.opacity(0.1) : Color.secondary.opacity(0.04)
-    }
-    
-    private var borderColor: Color {
-        isSelected ? Color.accentColor : Color.primary.opacity(0.08)
-    }
-    
-    private var borderWidth: CGFloat {
-        isSelected ? 2 : 1
-    }
-    
-    var body: some View {
-        Button(action: action) {
-            cardContent
-        }
-        .buttonStyle(.plain)
-        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isSelected)
-    }
-    
-    private var cardContent: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            cardHeader
-            cardText
-        }
-        .padding(14)
-        .frame(width: 160, height: 120, alignment: .topLeading)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(cardBackground)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .strokeBorder(borderColor, lineWidth: borderWidth)
-        )
-        .shadow(
-            color: isSelected ? Color.accentColor.opacity(0.2) : .clear,
-            radius: 8,
-            y: 4
-        )
-    }
-    
-    private var cardHeader: some View {
-        HStack {
-            Image(systemName: preset.hero)
-                .font(.title3)
-                .foregroundStyle(isSelected ? Color.white : Color.accentColor)
-                .frame(width: 36, height: 36)
-                .background(Circle().fill(iconBackground))
-            
-            Spacer()
-            
-            if isSelected {
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.body)
-                    .foregroundStyle(Color.accentColor)
-            }
-        }
-    }
-    
-    private var cardText: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(preset.name)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.primary)
-            
-            Text(preset.detail)
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-                .lineLimit(2)
-                .fixedSize(horizontal: false, vertical: true)
-        }
     }
 }
 
