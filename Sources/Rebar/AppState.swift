@@ -93,26 +93,23 @@ final class AppState: ObservableObject {
             var failedCount = 0
 
             for job in jobsSnapshot {
+                // Single update to mark as in-progress (no intermediate stage updates)
                 await MainActor.run {
                     self.updateJob(job.id) { job in
                         job.status = .inProgress(step: .loadingInput)
                     }
-                    self.conversionStatusMessage = "Converting \(completedCount)/\(jobsSnapshot.count)…"
                 }
 
                 do {
+                    // Convert without progress callbacks to avoid UI thrashing
                     let result = try await self.conversionService.convert(
                         item: job.item,
                         form: formSnapshot,
-                        progress: { stage in
-                            Task { @MainActor in
-                                self.updateJob(job.id) { job in
-                                    job.status = .inProgress(step: stage)
-                                }
-                            }
-                        }
+                        progress: nil  // Skip intermediate updates for performance
                     )
                     completedCount += 1
+                    
+                    // Batch update: status + message + result in one MainActor call
                     await MainActor.run {
                         self.updateJob(job.id) { job in
                             job.status = .completed(result)

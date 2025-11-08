@@ -158,7 +158,7 @@ struct ContentView: View {
             convertButton
             
             // Files section - always visible, shows conversion progress
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 10) {
                 HStack {
                     Label("\(appState.jobs.count) File\(appState.jobs.count == 1 ? "" : "s")", systemImage: "photo.stack")
                         .font(.subheadline.weight(.semibold))
@@ -190,19 +190,33 @@ struct ContentView: View {
                     }
                 }
                 
-                // Compact file list during conversion, taller when idle
-                ScrollView {
-                    LazyVStack(spacing: 6) {
-                        ForEach(appState.jobs) { job in
-                            jobRow(for: job)
+                // Horizontal scrolling file list - compact and smooth
+                ScrollViewReader { scrollProxy in
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(appState.jobs) { job in
+                                jobRow(for: job)
+                                    .id(job.id)
+                            }
+                        }
+                        .padding(.horizontal, 2)
+                        .padding(.vertical, 2)
+                    }
+                    .frame(height: 72)
+                    .onChange(of: appState.jobs.map { $0.status }) { 
+                        // Auto-scroll to the first in-progress job with smooth spring animation
+                        if let inProgressJob = appState.jobs.first(where: { 
+                            if case .inProgress = $0.status { return true }
+                            return false
+                        }) {
+                            withAnimation(.spring(response: 0.5, dampingFraction: 0.85)) {
+                                scrollProxy.scrollTo(inProgressJob.id, anchor: .center)
+                            }
                         }
                     }
                 }
-                .frame(height: appState.isConverting ? 160 : 120)
-                .scrollIndicators(.visible)
-                .animation(.spring(response: 0.3, dampingFraction: 0.8), value: appState.isConverting)
             }
-            .padding(14)
+            .padding(12)
             .background(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .fill(Color.secondary.opacity(0.04))
@@ -214,7 +228,6 @@ struct ContentView: View {
                         lineWidth: appState.isConverting ? 1.5 : 1
                     )
             )
-            .animation(.spring(response: 0.3, dampingFraction: 0.8), value: appState.isConverting)
             
             // Status/Results - shown below the file list
             if let result = appState.conversionResult {
@@ -224,32 +237,71 @@ struct ContentView: View {
     }
     
     private func jobRow(for job: ConversionJob) -> some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 8) {
+            // Thumbnail
             thumbnail(for: job.item)
+                .frame(width: 48, height: 48)
+                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
                 .overlay(
                     RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .strokeBorder(Color.primary.opacity(0.1), lineWidth: 0.5)
+                        .strokeBorder(
+                            statusBorderColor(for: job.status),
+                            lineWidth: statusBorderWidth(for: job.status)
+                        )
                 )
             
-            VStack(alignment: .leading, spacing: 2) {
+            // File info - fixed width to prevent jittering
+            VStack(alignment: .leading, spacing: 3) {
                 Text(job.item.displayName)
                     .font(.caption.weight(.medium))
                     .lineLimit(1)
-                Text(statusSubtitle(for: job))
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.primary)
+                    .frame(maxWidth: 110, alignment: .leading)
+                
+                HStack(spacing: 4) {
+                    statusBadge(for: job.status)
+                        .frame(width: 12, height: 12)
+                    
+                    // Fixed width for status text to prevent jittering
+                    Text(statusSubtitle(for: job))
+                        .font(.system(size: 9.5))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .frame(width: 90, alignment: .leading)
+                }
             }
-            
-            Spacer(minLength: 4)
-            
-            statusBadge(for: job.status)
         }
-        .padding(.vertical, 6)
-        .padding(.horizontal, 10)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 8)
+        .frame(width: 180, height: 64)
         .background(
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .fill(statusBackgroundColor(for: job.status))
         )
+    }
+    
+    private func statusBorderColor(for status: ConversionJobStatus) -> Color {
+        switch status {
+        case .inProgress:
+            return Color.accentColor.opacity(0.4)
+        case .completed:
+            return Color.green.opacity(0.3)
+        case .failed:
+            return Color.red.opacity(0.4)
+        default:
+            return Color.clear
+        }
+    }
+    
+    private func statusBorderWidth(for status: ConversionJobStatus) -> CGFloat {
+        switch status {
+        case .inProgress:
+            return 1.5
+        case .completed, .failed:
+            return 1
+        default:
+            return 0
+        }
     }
     
     private func statusBackgroundColor(for status: ConversionJobStatus) -> Color {
@@ -655,12 +707,10 @@ struct ContentView: View {
 
     @ViewBuilder
     private func thumbnail(for item: DroppedItem) -> some View {
-        if let image = item.thumbnail(maxDimension: 32) {
+        if let image = item.thumbnail(maxDimension: 96) {
             Image(nsImage: image)
                 .resizable()
                 .aspectRatio(contentMode: .fill)
-                .frame(width: 32, height: 32)
-                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
         } else {
             ZStack {
                 RoundedRectangle(cornerRadius: 6, style: .continuous)
@@ -672,10 +722,9 @@ struct ContentView: View {
                         )
                     )
                 Image(systemName: "photo.fill")
-                    .font(.caption)
+                    .font(.body)
                     .foregroundStyle(.secondary)
             }
-            .frame(width: 32, height: 32)
         }
     }
 
@@ -698,19 +747,19 @@ struct ContentView: View {
         switch status {
         case .pending:
             Image(systemName: "circle.dashed")
-                .font(.body)
+                .font(.system(size: 11))
                 .foregroundStyle(.secondary)
         case .inProgress:
             ProgressView()
-                .controlSize(.small)
-                .scaleEffect(0.8)
+                .controlSize(.mini)
+                .scaleEffect(0.85)
         case .completed:
             Image(systemName: "checkmark.circle.fill")
-                .font(.body)
+                .font(.system(size: 11))
                 .foregroundStyle(.green)
         case .failed:
             Image(systemName: "exclamationmark.triangle.fill")
-                .font(.body)
+                .font(.system(size: 11))
                 .foregroundStyle(.red)
         }
     }
