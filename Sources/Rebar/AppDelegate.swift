@@ -6,7 +6,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var menuBarController: MenuBarController?
     private var appState: AppState?
     func applicationDidFinishLaunching(_ notification: Notification) {
-        ProcessInfo.processInfo.disableAutomaticTermination("RebarNeedsToStayRunning")
+        ProcessInfo.processInfo.disableAutomaticTermination("ImgPressNeedsToStayRunning")
         NSApp.setActivationPolicy(.accessory)
 
         let appState = AppState()

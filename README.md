@@ -1,6 +1,6 @@
-# Rebar
+# ImgPress
 
-A lightweight macOS menu bar application for batch image conversion and optimization. Rebar lives in your menu bar and provides quick access to convert images between formats (JPEG, PNG, WebP, AVIF) with customizable quality and resize options.
+A lightweight macOS menu bar application for batch image conversion and optimization. ImgPress lives in your menu bar and provides quick access to convert images between formats (JPEG, PNG, WebP, AVIF) with customizable quality and resize options.
 
 ## Features
 
@@ -29,8 +29,8 @@ A lightweight macOS menu bar application for batch image conversion and optimiza
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/yourusername/rebar.git
-cd rebar
+git clone https://github.com/yourusername/imgpress.git
+cd imgpress
 ```
 
 2. Build the application:
@@ -39,19 +39,19 @@ cd rebar
 swift build -c release
 ```
 
-3. The compiled executable will be at `.build/release/Rebar`
+3. The compiled executable will be at `.build/release/ImgPress`
 
 4. Copy to Applications or run directly:
 
 ```bash
-.build/release/Rebar
+.build/release/ImgPress
 ```
 
 ## Usage
 
 ### Getting Started
 
-1. Launch Rebar - it will appear in your menu bar as a camera aperture icon
+1. Launch ImgPress - it will appear in your menu bar as a camera aperture icon
 2. Click the menu bar icon to open the conversion panel
 3. Drag and drop images or folders onto the drop zone
 4. Select your desired output format and quality settings
@@ -59,7 +59,7 @@ swift build -c release
 
 ### Drag and Drop
 
-You can drag images directly onto the menu bar icon without opening the panel. Rebar will automatically:
+You can drag images directly onto the menu bar icon without opening the panel. ImgPress will automatically:
 
 - Accept the files
 - Open the panel
@@ -67,7 +67,7 @@ You can drag images directly onto the menu bar icon without opening the panel. R
 
 ### Quick Presets
 
-Rebar includes three optimized presets:
+ImgPress includes three optimized presets:
 
 - **Shareable JPEG**: 75% quality, ideal for web sharing while preserving metadata
 - **Transparent PNG**: Lossless compression, perfect for logos and graphics with transparency
@@ -75,7 +75,7 @@ Rebar includes three optimized presets:
 
 ### Advanced Options
 
-- **Output Directory**: Choose where converted images are saved (defaults to Desktop/Rebar)
+- **Output Directory**: Choose where converted images are saved (defaults to Desktop/ImgPress)
 - **Filename Suffix**: Add custom suffixes to distinguish converted files
 - **Metadata**: Toggle preservation of EXIF data, location info, and other metadata
 - **Resize**: Scale images down by percentage for web optimization or storage
@@ -90,7 +90,7 @@ During batch conversions, use the playback controls to:
 
 ## How It Works
 
-Rebar is built with Swift and SwiftUI, leveraging Apple's native ImageIO framework for efficient image processing. The application runs as a menu bar utility (LSUIElement) without a dock icon.
+ImgPress is built with Swift and SwiftUI, leveraging Apple's native ImageIO framework for efficient image processing. The application runs as a menu bar utility (LSUIElement) without a dock icon.
 
 **Key Architecture:**
 

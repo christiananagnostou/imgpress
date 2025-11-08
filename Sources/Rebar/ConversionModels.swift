@@ -49,8 +49,8 @@ struct ConversionForm: Sendable {
             preserveMetadata: true,
             resizeEnabled: false,
             resizePercent: 100,
-            outputDirectoryPath: "~/Desktop/Rebar",
-            filenameSuffix: "_rebar"
+            outputDirectoryPath: "~/Desktop/ImgPress",
+            filenameSuffix: "_imgpress"
         )
     }
 }
@@ -72,7 +72,7 @@ struct ConversionPreset: Identifiable, Equatable, Sendable {
             preserveMetadata: preserveMetadata,
             resizeEnabled: defaultResizePercent != 100,
             resizePercent: defaultResizePercent,
-            outputDirectoryPath: "~/Desktop/Rebar",
+            outputDirectoryPath: "~/Desktop/ImgPress",
             filenameSuffix: "_\(defaultFormat.fileExtension)"
         )
     }

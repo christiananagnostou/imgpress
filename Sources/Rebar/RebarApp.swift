@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct RebarApp: App {
+struct ImgPressApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     var body: some Scene {

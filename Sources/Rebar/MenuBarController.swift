@@ -15,7 +15,7 @@ final class MenuBarController: NSObject {
         
         statusItem.isVisible = true
         statusItem.behavior = [.removalAllowed]
-        statusItem.autosaveName = "RebarStatusItem"
+        statusItem.autosaveName = "ImgPressStatusItem"
         
         configureStatusItem()
     }
@@ -42,7 +42,7 @@ final class MenuBarController: NSObject {
     private func configureStatusItem() {
         guard let button = statusItem.button else { return }
         
-        button.image = NSImage(systemSymbolName: "camera.aperture", accessibilityDescription: "Rebar")
+        button.image = NSImage(systemSymbolName: "camera.aperture", accessibilityDescription: "ImgPress")
         button.image?.isTemplate = true
         if button.image == nil {
             button.title = "Reb"

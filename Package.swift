@@ -2,23 +2,23 @@
 import PackageDescription
 
 let package = Package(
-    name: "Rebar",
+    name: "ImgPress",
     platforms: [
         .macOS(.v14) 
     ],
     products: [
         .executable(
-            name: "Rebar",
-            targets: ["Rebar"]
+            name: "ImgPress",
+            targets: ["ImgPress"]
         )
     ],
     dependencies: [
     ],
     targets: [
         .executableTarget(
-            name: "Rebar",
+            name: "ImgPress",
             dependencies: [],
-            path: "Sources/Rebar",
+            path: "Sources/ImgPress",
             swiftSettings: [
                 .enableUpcomingFeature("StrictConcurrency"),
                 .unsafeFlags(["-warnings-as-errors"], .when(configuration: .debug))

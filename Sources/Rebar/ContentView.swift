@@ -89,7 +89,7 @@ struct ContentView: View {
             }
             
             VStack(alignment: .leading, spacing: 2) {
-                Text("Rebar")
+                Text("ImgPress")
                     .font(.title3.weight(.bold))
                 Text("Image Optimizer")
                     .font(.caption)
@@ -614,7 +614,7 @@ struct ContentView: View {
                         Text("Filename Suffix")
                             .font(.caption.weight(.medium))
                             .foregroundStyle(.secondary)
-                        TextField("_rebar", text: binding(for: \.filenameSuffix))
+                        TextField("_imgpress", text: binding(for: \.filenameSuffix))
                             .textFieldStyle(.roundedBorder)
                             .font(.caption)
                     }
@@ -1061,7 +1061,7 @@ struct ContentView: View {
             }
             .buttonStyle(.plain)
             .foregroundStyle(.secondary)
-            .help("Quit Rebar")
+            .help("Quit ImgPress")
         }
     }
 
