@@ -34,10 +34,8 @@ final class AppState: ObservableObject {
     }
 
     func register(drop urls: [URL]) {
-        // Clear thumbnail cache from previous session to free memory
         ThumbnailCache.shared.clearCache()
         
-        // Kick off a background scan so the UI stays responsive
         jobs = []
         dropError = nil
         isImporting = true
@@ -51,10 +49,9 @@ final class AppState: ObservableObject {
             guard let self else { return }
             let candidates = flattenURLs(urls)
             
-            // Batch processing to reduce UI updates
             var newJobs: [ConversionJob] = []
             var processedCount = 0
-            let batchSize = 20 // Update UI every 20 files instead of every single file
+            let batchSize = 20
             
             for url in candidates {
                 if FileTypeValidator.isAcceptable(url) {
@@ -62,7 +59,6 @@ final class AppState: ObservableObject {
                     newJobs.append(ConversionJob(item: item))
                     processedCount += 1
                     
-                    // Batch update UI
                     if processedCount % batchSize == 0 {
                         let jobsToAdd = newJobs
                         let count = processedCount
@@ -76,7 +72,6 @@ final class AppState: ObservableObject {
                 }
             }
             
-            // Add remaining items
             let finalJobs = newJobs
             let finalCount = processedCount
             if !finalJobs.isEmpty {
@@ -130,22 +125,18 @@ final class AppState: ObservableObject {
             var totalOutputSize: Int64 = 0
 
             for job in jobsSnapshot {
-                // Check if stop was requested
                 if await MainActor.run(body: { self.shouldStop }) {
                     break
                 }
                 
-                // Wait while paused
                 while await MainActor.run(body: { self.isPaused && !self.shouldStop }) {
-                    try? await Task.sleep(nanoseconds: 100_000_000) // 0.1s
+                    try? await Task.sleep(nanoseconds: 100_000_000)
                 }
                 
-                // Check again after pause
                 if await MainActor.run(body: { self.shouldStop }) {
                     break
                 }
                 
-                // Single update to mark as in-progress (no intermediate stage updates)
                 await MainActor.run {
                     self.updateJob(job.id) { job in
                         job.status = .inProgress(step: .loadingInput)
@@ -153,17 +144,15 @@ final class AppState: ObservableObject {
                 }
 
                 do {
-                    // Convert without progress callbacks to avoid UI thrashing
                     let result = try await self.conversionService.convert(
                         item: job.item,
                         form: formSnapshot,
-                        progress: nil  // Skip intermediate updates for performance
+                        progress: nil
                     )
                     completedCount += 1
                     totalOriginalSize += result.originalSize
                     totalOutputSize += result.outputSize
                     
-                    // Batch update: status + message + result in one MainActor call
                     await MainActor.run {
                         self.updateJob(job.id) { job in
                             job.status = .completed(result)
@@ -245,12 +234,9 @@ final class AppState: ObservableObject {
 
 }
 
-// MARK: - Helpers (not actor-isolated)
-
-/// Recursively flatten directories into individual file URLs
 private func flattenURLs(_ urls: [URL]) -> [URL] {
     let fm = FileManager.default
-    var collected = Set<URL>() // Use Set for automatic deduplication
+    var collected = Set<URL>()
     
     func processURL(_ url: URL) {
         var isDir: ObjCBool = false
@@ -300,17 +286,15 @@ struct DroppedItem: Identifiable {
     }
 
     func thumbnail(maxDimension: CGFloat = 40) -> NSImage? {
-        // Use shared cache to avoid regenerating thumbnails
-        return ThumbnailCache.shared.thumbnail(for: url, maxDimension: maxDimension)
+        ThumbnailCache.shared.thumbnail(for: url, maxDimension: maxDimension)
     }
 }
 
-// Singleton thumbnail cache to prevent memory bloat
 final class ThumbnailCache {
     static let shared = ThumbnailCache()
     private var cache: [URL: NSImage] = [:]
     private let lock = NSLock()
-    private let maxCacheSize = 100 // Limit cache to prevent memory issues
+    private let maxCacheSize = 100
     
     private init() {}
     
@@ -318,26 +302,22 @@ final class ThumbnailCache {
         lock.lock()
         defer { lock.unlock() }
         
-        // Return cached if available
         if let cached = cache[url] {
             return cached
         }
         
-        // Generate thumbnail efficiently using CGImageSource (doesn't load full image into memory)
         guard let imageSource = CGImageSourceCreateWithURL(url as CFURL, nil),
               let cgImage = CGImageSourceCreateThumbnailAtIndex(imageSource, 0, [
                 kCGImageSourceCreateThumbnailFromImageAlways: true,
                 kCGImageSourceCreateThumbnailWithTransform: true,
-                kCGImageSourceThumbnailMaxPixelSize: maxDimension * 2 // 2x for retina
+                kCGImageSourceThumbnailMaxPixelSize: maxDimension * 2
               ] as CFDictionary) else {
             return nil
         }
         
         let thumbnail = NSImage(cgImage: cgImage, size: NSSize(width: maxDimension, height: maxDimension))
         
-        // Cache with size limit (LRU eviction)
         if cache.count >= maxCacheSize {
-            // Remove first (oldest) item
             if let firstKey = cache.keys.first {
                 cache.removeValue(forKey: firstKey)
             }
