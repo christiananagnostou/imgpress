@@ -6,21 +6,35 @@ Added comprehensive testing infrastructure using **Swift Testing** (Swift 5.9+),
 ## What Was Added
 
 ### Project Structure Changes
+
 ```
 ImgPress/
-├── Package.swift                      # Updated with library + test targets
-├── Sources/ImgPressApp/main.swift    # App entry point (new)
-├── ImgPress/                         # Core library code
-└── Tests/                            # Test suite (new)
-    ├── README.md                     # Testing documentation
-    ├── AppStateTests.swift
-    ├── ConversionModelsTests.swift
-    ├── ConversionResultTests.swift
-    ├── ConversionServiceTests.swift
-    ├── ConversionStageTests.swift
-    ├── ConversionSummaryTests.swift
-    └── FileTypeValidatorTests.swift
+├── Sources/
+│   └── ImgPressCore/          # All application code
+│       ├── ImgPressApp.swift  # App entry point (@main)
+│       ├── AppDelegate.swift
+│       ├── AppState.swift
+│       ├── ContentView.swift
+│       ├── ConversionModels.swift
+│       ├── ConversionService.swift
+│       ├── FileTypeValidator.swift
+│       ├── MenuBarController.swift
+│       └── StatusItemDropView.swift
+├── Tests/                      # Test suite
+│   ├── AppStateTests.swift
+│   ├── ConversionModelsTests.swift
+│   ├── ConversionResultTests.swift
+│   ├── ConversionServiceTests.swift
+│   ├── ConversionStageTests.swift
+│   ├── ConversionSummaryTests.swift
+│   ├── FileTypeValidatorTests.swift
+│   └── README.md
+├── Package.swift               # SPM manifest
+├── README.md
+└── TESTING.md
 ```
+
+This follows the **standard Swift Package Manager structure** for macOS applications.
 
 ### Test Coverage (52 tests across 12 suites)
 

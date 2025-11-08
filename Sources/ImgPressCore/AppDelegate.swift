@@ -2,10 +2,10 @@ import AppKit
 import SwiftUI
 
 @MainActor
-public final class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate {
     private var menuBarController: MenuBarController?
     private var appState: AppState?
-    public func applicationDidFinishLaunching(_ notification: Notification) {
+    func applicationDidFinishLaunching(_ notification: Notification) {
         ProcessInfo.processInfo.disableAutomaticTermination("ImgPressNeedsToStayRunning")
         NSApp.setActivationPolicy(.accessory)
 
@@ -24,7 +24,9 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         menuBarController = MenuBarController(popover: popover, appState: appState)
     }
 
-    public func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool)
+        -> Bool
+    {
         if !flag {
             menuBarController?.showPopover()
         }
