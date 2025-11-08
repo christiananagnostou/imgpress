@@ -26,7 +26,7 @@ enum ConversionServiceError: LocalizedError, Sendable {
     }
 }
 
-struct ConversionResult: Sendable {
+struct ConversionResult: Sendable, Equatable {
     let originalSize: Int64
     let outputSize: Int64
     let outputURL: URL

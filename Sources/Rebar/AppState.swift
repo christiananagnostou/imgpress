@@ -240,7 +240,7 @@ enum DropError: LocalizedError {
     }
 }
 
-enum ConversionJobStatus {
+enum ConversionJobStatus: Equatable {
     case pending
     case inProgress(step: ConversionStage)
     case completed(ConversionResult)
