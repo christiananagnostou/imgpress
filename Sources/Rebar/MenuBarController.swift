@@ -12,9 +12,11 @@ final class MenuBarController: NSObject {
         self.appState = appState
         self.statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         super.init()
+        
         statusItem.isVisible = true
         statusItem.behavior = [.removalAllowed]
-        NSLog("MenuBarController init - status item created with length \(statusItem.length)")
+        statusItem.autosaveName = "RebarStatusItem" // Persist position
+        
         configureStatusItem()
     }
 
@@ -38,11 +40,8 @@ final class MenuBarController: NSObject {
     }
 
     private func configureStatusItem() {
-        guard let button = statusItem.button else {
-            NSLog("MenuBarController configureStatusItem - status item has no button")
-            return
-        }
-        NSLog("MenuBarController configureStatusItem - configuring button")
+        guard let button = statusItem.button else { return }
+        
         button.image = NSImage(systemSymbolName: "camera.aperture", accessibilityDescription: "Rebar")
         button.image?.isTemplate = true
         if button.image == nil {

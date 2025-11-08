@@ -4,7 +4,7 @@ import PackageDescription
 let package = Package(
     name: "Rebar",
     platforms: [
-        .macOS(.v13)
+        .macOS(.v14) 
     ],
     products: [
         .executable(
@@ -20,6 +20,7 @@ let package = Package(
             dependencies: [],
             path: "Sources/Rebar",
             swiftSettings: [
+                .enableUpcomingFeature("StrictConcurrency"),
                 .unsafeFlags(["-warnings-as-errors"], .when(configuration: .debug))
             ]
         )

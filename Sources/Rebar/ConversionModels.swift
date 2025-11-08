@@ -1,6 +1,6 @@
 import Foundation
 
-enum ImageFormat: String, CaseIterable, Identifiable {
+enum ImageFormat: String, CaseIterable, Identifiable, Sendable {
     case jpeg = "JPEG"
     case png = "PNG"
     case webp = "WebP"
@@ -33,7 +33,7 @@ enum ImageFormat: String, CaseIterable, Identifiable {
     }
 }
 
-struct ConversionForm {
+struct ConversionForm: Sendable {
     var format: ImageFormat
     var quality: Double
     var preserveMetadata: Bool
@@ -55,7 +55,7 @@ struct ConversionForm {
     }
 }
 
-struct ConversionPreset: Identifiable, Equatable {
+struct ConversionPreset: Identifiable, Equatable, Sendable {
     let id = UUID()
     let name: String
     let detail: String

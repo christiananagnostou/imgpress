@@ -1,0 +1,46 @@
+# SwiftLint Configuration for Rebar
+# Run: swiftlint lint
+
+# Enabled rules
+opt_in_rules:
+  - explicit_init
+  - explicit_type_interface
+  - file_header
+  - force_unwrapping
+  - implicit_return
+  - multiline_arguments
+  - multiline_parameters
+  - pattern_matching_keywords
+  - trailing_closure
+  - unneeded_parentheses_in_closure_argument
+  - vertical_parameter_alignment_on_call
+
+# Disabled rules
+disabled_rules:
+  - line_length # SwiftUI can have long lines
+  - trailing_comma # Prefer trailing commas in collections
+
+# Rule configurations
+identifier_name:
+  min_length: 2
+  max_length: 60
+  excluded:
+    - id
+    - x
+    - y
+
+type_name:
+  min_length: 3
+  max_length: 50
+
+# File settings
+included:
+  - Sources
+
+excluded:
+  - .build
+  - DerivedData
+
+# Severity
+force_cast: error
+force_try: error

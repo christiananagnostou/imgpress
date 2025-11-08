@@ -3,7 +3,7 @@ import Foundation
 import ImageIO
 import UniformTypeIdentifiers
 
-enum ConversionServiceError: LocalizedError {
+enum ConversionServiceError: LocalizedError, Sendable {
     case unsupportedFormat
     case imageReadFailed
     case destinationCreationFailed
@@ -26,7 +26,7 @@ enum ConversionServiceError: LocalizedError {
     }
 }
 
-struct ConversionResult {
+struct ConversionResult: Sendable {
     let originalSize: Int64
     let outputSize: Int64
     let outputURL: URL
@@ -142,7 +142,7 @@ final class ConversionService {
     }
 }
 
-enum ConversionStage: String {
+enum ConversionStage: String, Sendable {
     case ensuringOutputDirectory = "Creating output directory"
     case loadingInput = "Loading image"
     case resizing = "Resizing"

@@ -176,7 +176,7 @@ struct ContentView: View {
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.secondary)
 
-            Picker("Format", selection: formatBinding) {
+            Picker("Format", selection: binding(for: \.format)) {
                 ForEach(ImageFormat.allCases) { format in
                     Text(format.displayName).tag(format)
                 }
@@ -192,7 +192,7 @@ struct ContentView: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
-                    Slider(value: qualityBinding, in: 30...100, step: 1)
+                    Slider(value: binding(for: \.quality), in: 30...100, step: 1)
                 }
             } else {
                 Label("Lossless codec – quality slider disabled", systemImage: "aqi.medium")
@@ -200,11 +200,11 @@ struct ContentView: View {
                     .foregroundStyle(.secondary)
             }
 
-            Toggle(isOn: preserveMetadataBinding) {
+            Toggle(isOn: binding(for: \.preserveMetadata)) {
                 Label("Preserve metadata (Exif, GPS)", systemImage: "tag")
             }
 
-            Toggle(isOn: resizeEnabledBinding.animation()) {
+            Toggle(isOn: binding(for: \.resizeEnabled).animation()) {
                 Label("Resize", systemImage: "arrow.up.left.and.down.right.magnifyingglass")
             }
 
@@ -217,7 +217,7 @@ struct ContentView: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
-                    Slider(value: resizePercentBinding, in: 20...150, step: 5)
+                    Slider(value: binding(for: \.resizePercent), in: 20...150, step: 5)
                         .tint(.orange)
                 }
             }
@@ -227,7 +227,7 @@ struct ContentView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 HStack {
-                    TextField("Path", text: outputDirectoryBinding)
+                    TextField("Path", text: binding(for: \.outputDirectoryPath))
                         .textFieldStyle(.roundedBorder)
                     Button("Browse…") {
                         appState.browseForOutputDirectory()
@@ -239,7 +239,7 @@ struct ContentView: View {
                 Text("Filename suffix")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                TextField("_rebar", text: filenameSuffixBinding)
+                TextField("_rebar", text: binding(for: \.filenameSuffix))
                     .textFieldStyle(.roundedBorder)
             }
 
@@ -448,60 +448,12 @@ struct ContentView: View {
     }
 
     // MARK: - Bindings
-
-    private var formatBinding: Binding<ImageFormat> {
-        Binding {
-            appState.conversionForm.format
-        } set: { newValue in
-            appState.conversionForm.format = newValue
-        }
-    }
-
-    private var qualityBinding: Binding<Double> {
-        Binding {
-            appState.conversionForm.quality
-        } set: { newValue in
-            appState.conversionForm.quality = newValue
-        }
-    }
-
-    private var preserveMetadataBinding: Binding<Bool> {
-        Binding {
-            appState.conversionForm.preserveMetadata
-        } set: { newValue in
-            appState.conversionForm.preserveMetadata = newValue
-        }
-    }
-
-    private var resizeEnabledBinding: Binding<Bool> {
-        Binding {
-            appState.conversionForm.resizeEnabled
-        } set: { newValue in
-            appState.conversionForm.resizeEnabled = newValue
-        }
-    }
-
-    private var resizePercentBinding: Binding<Double> {
-        Binding {
-            appState.conversionForm.resizePercent
-        } set: { newValue in
-            appState.conversionForm.resizePercent = newValue
-        }
-    }
-
-    private var outputDirectoryBinding: Binding<String> {
-        Binding {
-            appState.conversionForm.outputDirectoryPath
-        } set: { newValue in
-            appState.conversionForm.outputDirectoryPath = newValue
-        }
-    }
-
-    private var filenameSuffixBinding: Binding<String> {
-        Binding {
-            appState.conversionForm.filenameSuffix
-        } set: { newValue in
-            appState.conversionForm.filenameSuffix = newValue
-        }
+    
+    /// Generic binding helper using KeyPath for DRY code
+    private func binding<T>(for keyPath: WritableKeyPath<ConversionForm, T>) -> Binding<T> {
+        Binding(
+            get: { self.appState.conversionForm[keyPath: keyPath] },
+            set: { self.appState.conversionForm[keyPath: keyPath] = $0 }
+        )
     }
 }

@@ -45,7 +45,7 @@ final class AppState: ObservableObject {
             let candidates = flattenURLs(urls)
 
             for url in candidates {
-                if isAcceptableURL(url) {
+                if FileTypeValidator.isAcceptable(url) {
                     let item = DroppedItem(url: url)
                     await MainActor.run {
                         self.jobs.append(ConversionJob(item: item))
@@ -90,6 +90,7 @@ final class AppState: ObservableObject {
 
         Task {
             var completedCount = 0
+            var failedCount = 0
 
             for job in jobsSnapshot {
                 await MainActor.run {
@@ -120,6 +121,7 @@ final class AppState: ObservableObject {
                         self.conversionResult = result
                     }
                 } catch {
+                    failedCount += 1
                     await MainActor.run {
                         self.updateJob(job.id) { job in
                             job.status = .failed(error.localizedDescription)
@@ -129,7 +131,10 @@ final class AppState: ObservableObject {
             }
 
             await MainActor.run {
-                self.conversionStatusMessage = "Finished \(completedCount)/\(jobsSnapshot.count) file(s)"
+                let summary = failedCount > 0 
+                    ? "Completed \(completedCount), failed \(failedCount)"
+                    : "Completed all \(completedCount) file(s)"
+                self.conversionStatusMessage = summary
                 self.isConverting = false
             }
         }
@@ -152,63 +157,43 @@ final class AppState: ObservableObject {
     }
 
     private func updateJob(_ id: UUID, mutate: (inout ConversionJob) -> Void) {
-        jobs = jobs.map { current in
-            guard current.id == id else { return current }
-            var updated = current
-            mutate(&updated)
-            return updated
-        }
+        guard let index = jobs.firstIndex(where: { $0.id == id }) else { return }
+        mutate(&jobs[index])
     }
 
 }
 
 // MARK: - Helpers (not actor-isolated)
 
+/// Recursively flatten directories into individual file URLs
 private func flattenURLs(_ urls: [URL]) -> [URL] {
-    var collected: [URL] = []
     let fm = FileManager.default
-
-    for url in urls {
+    var collected = Set<URL>() // Use Set for automatic deduplication
+    
+    func processURL(_ url: URL) {
         var isDir: ObjCBool = false
-        if fm.fileExists(atPath: url.path, isDirectory: &isDir), isDir.boolValue {
-            if let enumerator = fm.enumerator(
+        guard fm.fileExists(atPath: url.path, isDirectory: &isDir) else { return }
+        
+        if isDir.boolValue {
+            guard let enumerator = fm.enumerator(
                 at: url,
-                includingPropertiesForKeys: [.isDirectoryKey],
+                includingPropertiesForKeys: [.isDirectoryKey, .isRegularFileKey],
                 options: [.skipsHiddenFiles]
-            ) {
-                for case let fileURL as URL in enumerator {
-                    collected.append(fileURL)
+            ) else { return }
+            
+            for case let fileURL as URL in enumerator {
+                if let isRegularFile = try? fileURL.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile,
+                   isRegularFile {
+                    collected.insert(fileURL.standardizedFileURL)
                 }
             }
         } else {
-            collected.append(url)
+            collected.insert(url.standardizedFileURL)
         }
     }
-
-    var seen = Set<URL>()
-    return collected.filter { seen.insert($0.standardizedFileURL).inserted }
-}
-
-private func isAcceptableURL(_ url: URL) -> Bool {
-    guard url.isFileURL else { return false }
-    guard let typeIdentifier = try? url.resourceValues(forKeys: [.typeIdentifierKey]).typeIdentifier,
-          let type = UTType(typeIdentifier) else {
-        return false
-    }
-
-    let allowedTypes: [UTType] = [
-        .image,
-        .rawImage,
-        .livePhoto,
-        UTType("com.canon.cr2-raw-image"),
-        UTType("public.heic"),
-        UTType("com.canon.cr3-raw-image"),
-        UTType("com.adobe.raw-image"),
-        UTType("com.apple.protected-mpeg-4-audio"),
-        UTType("com.apple.quicktime-image")
-    ].compactMap { $0 }
-
-    return allowedTypes.contains(where: { type.conforms(to: $0) })
+    
+    urls.forEach(processURL)
+    return Array(collected)
 }
 
 struct DroppedItem: Identifiable {

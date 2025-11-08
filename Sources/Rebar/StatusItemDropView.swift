@@ -68,12 +68,6 @@ final class StatusItemDropView: NSView {
 
     private func containsAcceptableFile(in draggingInfo: NSDraggingInfo) -> Bool {
         let urls = fileURLs(from: draggingInfo)
-        return urls.contains { url in
-            guard let typeId = try? url.resourceValues(forKeys: [.typeIdentifierKey]).typeIdentifier,
-                  let utType = UTType(typeId) else {
-                return false
-            }
-            return utType.conforms(to: .image) || utType.conforms(to: .audiovisualContent)
-        }
+        return urls.contains(where: FileTypeValidator.isAcceptable)
     }
 }
