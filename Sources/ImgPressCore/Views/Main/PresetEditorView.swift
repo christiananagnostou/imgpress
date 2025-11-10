@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct PresetEditorSheet: View {
+struct PresetEditorView: View {
   @Environment(\.dismiss) private var dismiss
   @EnvironmentObject private var appState: AppState
   @ObservedObject var manager: PresetManager

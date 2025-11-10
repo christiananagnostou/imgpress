@@ -61,7 +61,7 @@ struct ContentView: View {
             SettingsView(manager: appState.presetManager)
         }
         .sheet(isPresented: $showingSavePreset) {
-            PresetEditorSheet(
+            PresetEditorView(
                 manager: appState.presetManager,
                 editingPreset: nil,
                 initialForm: appState.conversionForm

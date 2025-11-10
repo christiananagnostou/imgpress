@@ -29,7 +29,7 @@ Sources/ImgPressCore/
 ├── Models/                 # Data structures (ConversionModels, AppModels)
 ├── Services/              # Business logic (ConversionService, PresetManager, FileTypeValidator)
 └── Views/
-    ├── Main/              # Top-level views (ContentView, SettingsView, PresetEditorSheet)
+    ├── Main/              # Top-level views (ContentView, SettingsView, PresetEditorView)
     ├── Components/        # Reusable UI (ModernSegmentedControl, SliderControl, etc.)
     └── MenuBar/           # Menu bar specific (MenuBarController, StatusItemDropView)
 ```
@@ -167,7 +167,7 @@ This triggers single SwiftUI update via `@Published`, not array replacement.
 ### Cross-Component Communication
 
 - **AppState ↔ PresetManager**: AppState owns `PresetManager` instance, exposes as `let`
-- **PresetSelector ↔ PresetEditorSheet**: Callback closure pattern `(String, String, String, ConversionForm) -> Void`
+- **PresetSelector ↔ PresetEditorView**: Callback closure pattern `(String, String, String, ConversionForm) -> Void`
 - **ContentView ↔ AppState**: Environment object injection via `@EnvironmentObject`
 
 ### Menu Bar Integration

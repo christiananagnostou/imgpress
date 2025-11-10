@@ -105,7 +105,7 @@ struct SettingsView: View {
     .appBackground()
     .frame(minWidth: 500, minHeight: 400)
     .sheet(isPresented: $showingPresetEditor) {
-      PresetEditorSheet(
+      PresetEditorView(
         manager: manager,
         editingPreset: editingPreset,
         initialForm: editingPreset == nil ? .makeDefault() : nil
