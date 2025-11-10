@@ -4,78 +4,72 @@ import SwiftUI
 struct ContentView: View {
     @EnvironmentObject private var appState: AppState
     @State private var showingSettings = false
-    @State private var presetsExpanded = false
-    @State private var advancedExpanded = false
+    @State private var showingSavePreset = false
 
-    // Static formatters to avoid repeated allocations
-    static let byteFormatter: ByteCountFormatter = {
-        let formatter = ByteCountFormatter()
-        formatter.countStyle = .file
-        return formatter
-    }()
-
+    // Limit number of jobs displayed to prevent performance issues with large batches
     private static let displayLimit = 50
 
     var body: some View {
-        ZStack {
-            // Background gradient
-            LinearGradient(
-                colors: [
-                    Color(nsColor: .controlBackgroundColor),
-                    Color(nsColor: .windowBackgroundColor),
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea()
+        VStack(spacing: 0) {
+            header
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
+                .padding(.bottom, 12)
 
-            VStack(spacing: 0) {
-                header
+            if appState.isImporting {
+                importBanner
                     .padding(.horizontal, 20)
-                    .padding(.top, 16)
                     .padding(.bottom, 12)
-
-                if appState.isImporting {
-                    importBanner
-                        .padding(.horizontal, 20)
-                        .padding(.bottom, 12)
-                        .transition(.move(edge: .top).combined(with: .opacity))
-                }
-
-                ScrollViewReader { scrollProxy in
-                    ScrollView {
-                        VStack(spacing: 16) {
-                            if let error = appState.dropError {
-                                errorView(error)
-                            } else if !appState.jobs.isEmpty {
-                                jobsPanel
-                            } else {
-                                emptyState
-                            }
-                        }
-                        .padding(.horizontal, 20)
-                        .padding(.bottom, 16)
-                    }
-                    .onChange(of: appState.conversionSummary) { _, newValue in
-                        if newValue != nil {
-                            withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
-                                scrollProxy.scrollTo("conversionSummary", anchor: .bottom)
-                            }
-                        }
-                    }
-                }
-
-                Divider()
-
-                footer
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 12)
-                    .background(.ultraThinMaterial)
+                    .transition(.move(edge: .top).combined(with: .opacity))
             }
+
+            ScrollViewReader { scrollProxy in
+                ScrollView {
+                    VStack(spacing: 16) {
+                        if let error = appState.dropError {
+                            errorView(error)
+                        } else if !appState.jobs.isEmpty {
+                            jobsPanel
+                        } else {
+                            emptyState
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 16)
+                }
+                .onChange(of: appState.conversionSummary) { _, newValue in
+                    if newValue != nil {
+                        withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                            scrollProxy.scrollTo("conversionSummary", anchor: .bottom)
+                        }
+                    }
+                }
+            }
+
+            Divider()
+
+            footer
+                .padding(.horizontal, 20)
+                .padding(.vertical, 12)
+                .background(.ultraThinMaterial)
         }
+        .appBackground()
         .frame(width: 420, height: 600)
         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: appState.isImporting)
         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: appState.jobs.isEmpty)
+        .sheet(isPresented: $showingSettings) {
+            SettingsView(manager: appState.presetManager)
+        }
+        .sheet(isPresented: $showingSavePreset) {
+            PresetEditorSheet(
+                manager: appState.presetManager,
+                editingPreset: nil,
+                initialForm: appState.conversionForm
+            ) { name, description, icon, form in
+                appState.presetManager.createPreset(
+                    name: name, description: description, icon: icon, form: form)
+            }
+        }
     }
 
     private var header: some View {
@@ -153,17 +147,18 @@ struct ContentView: View {
 
     private var jobsPanel: some View {
         VStack(spacing: 16) {
-            // Preset selector (collapsible) - at the top
-            presetSelector
+            // Modern preset selector
+            PresetSelector(
+                appState: appState,
+                presetManager: appState.presetManager,
+                showingSavePreset: $showingSavePreset
+            )
 
-            // Format and quality controls
-            formatControls
-
-            // Toggles - metadata and resize
-            toggleControls
-
-            // Advanced options (output path, suffix)
-            advancedOptions
+            // Conversion form controls (format, quality, metadata, advanced options)
+            ConversionFormControls(
+                form: binding(for: \.self),
+                onBrowseDirectory: { appState.browseForOutputDirectory() }
+            )
 
             Divider()
                 .padding(.vertical, 4)
@@ -392,274 +387,6 @@ struct ContentView: View {
         }
     }
 
-    private var presetSelector: some View {
-        VStack(spacing: 0) {
-            // Custom clickable header
-            Button {
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                    presetsExpanded.toggle()
-                }
-            } label: {
-                HStack {
-                    Label("Quick Presets", systemImage: "wand.and.stars")
-                        .font(.subheadline.weight(.semibold))
-                    Spacer()
-
-                    // Show current selection when collapsed
-                    if !presetsExpanded {
-                        Text(appState.selectedPreset.name)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-
-                    Image(systemName: "chevron.right")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                        .rotationEffect(.degrees(presetsExpanded ? 90 : 0))
-                        .animation(
-                            .spring(response: 0.3, dampingFraction: 0.8), value: presetsExpanded)
-                }
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .padding(14)
-
-            // Expandable content
-            if presetsExpanded {
-                VStack(spacing: 10) {
-                    ForEach(appState.presets) { preset in
-                        Button {
-                            appState.selectPreset(preset)
-                        } label: {
-                            HStack(spacing: 12) {
-                                // Selection indicator
-                                Circle()
-                                    .strokeBorder(
-                                        appState.selectedPreset == preset
-                                            ? Color.accentColor : Color.secondary.opacity(0.3),
-                                        lineWidth: 2
-                                    )
-                                    .background(
-                                        Circle()
-                                            .fill(
-                                                appState.selectedPreset == preset
-                                                    ? Color.accentColor : Color.clear)
-                                    )
-                                    .frame(width: 16, height: 16)
-
-                                VStack(alignment: .leading, spacing: 3) {
-                                    Text(preset.name)
-                                        .font(.subheadline.weight(.medium))
-                                        .foregroundStyle(.primary)
-                                    Text(preset.detail)
-                                        .font(.caption2)
-                                        .foregroundStyle(.secondary)
-                                }
-
-                                Spacer()
-
-                                // Format badge
-                                Text(preset.defaultFormat.displayName.uppercased())
-                                    .font(.caption2.weight(.semibold))
-                                    .foregroundStyle(.secondary)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 4)
-                                    .background(
-                                        Capsule()
-                                            .fill(Color.secondary.opacity(0.1))
-                                    )
-                            }
-                            .padding(.vertical, 10)
-                            .padding(.horizontal, 12)
-                            .background(
-                                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                    .fill(
-                                        appState.selectedPreset == preset
-                                            ? Color.accentColor.opacity(0.08) : Color.clear)
-                            )
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .padding(.horizontal, 14)
-                .padding(.bottom, 14)
-                .transition(.opacity.combined(with: .move(edge: .top)))
-            }
-        }
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color.secondary.opacity(0.04))
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-    }
-
-    private var formatControls: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            // Format picker
-            VStack(alignment: .leading, spacing: 10) {
-                Label("Output Format", systemImage: "doc.badge.gearshape")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.secondary)
-
-                Picker("Format", selection: binding(for: \.format)) {
-                    ForEach(ImageFormat.allCases) { format in
-                        Text(format.displayName).tag(format)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-            // Quality slider
-            if appState.conversionForm.format.supportsQuality {
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack {
-                        Label("Quality", systemImage: "dial.medium")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.secondary)
-                        Spacer()
-                        Text("\(Int(appState.conversionForm.quality))%")
-                            .font(.subheadline.weight(.semibold))
-                            .monospacedDigit()
-                            .foregroundStyle(.primary)
-                    }
-
-                    Slider(value: binding(for: \.quality), in: 30...100, step: 1)
-                        .tint(.accentColor)
-                }
-                .transition(.opacity.combined(with: .move(edge: .top)))
-            }
-        }
-        .padding(14)
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color.secondary.opacity(0.04))
-        )
-    }
-
-    private var toggleControls: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Toggle(isOn: binding(for: \.preserveMetadata)) {
-                HStack(spacing: 8) {
-                    Image(systemName: "tag.fill")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .frame(width: 20)
-                    Text("Preserve Metadata")
-                        .font(.subheadline)
-                }
-            }
-            .toggleStyle(.switch)
-
-            Divider()
-
-            Toggle(isOn: binding(for: \.resizeEnabled).animation(.spring(response: 0.3))) {
-                HStack(spacing: 8) {
-                    Image(systemName: "arrow.up.left.and.down.right.magnifyingglass")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .frame(width: 20)
-                    Text("Resize Images")
-                        .font(.subheadline)
-                }
-            }
-            .toggleStyle(.switch)
-
-            // Resize slider
-            if appState.conversionForm.resizeEnabled {
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack {
-                        Text("Scale")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        Spacer()
-                        Text("\(Int(appState.conversionForm.resizePercent))%")
-                            .font(.caption.weight(.medium))
-                            .monospacedDigit()
-                            .foregroundStyle(.orange)
-                    }
-
-                    Slider(value: binding(for: \.resizePercent), in: 20...150, step: 5)
-                        .tint(.orange)
-                }
-                .transition(.opacity.combined(with: .move(edge: .top)))
-            }
-        }
-        .padding(14)
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color.secondary.opacity(0.04))
-        )
-    }
-
-    private var advancedOptions: some View {
-        VStack(spacing: 0) {
-            // Custom clickable header
-            Button {
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                    advancedExpanded.toggle()
-                }
-            } label: {
-                HStack {
-                    Label("Advanced Options", systemImage: "gearshape.2")
-                        .font(.subheadline.weight(.medium))
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                        .rotationEffect(.degrees(advancedExpanded ? 90 : 0))
-                        .animation(
-                            .spring(response: 0.3, dampingFraction: 0.8), value: advancedExpanded)
-                }
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .padding(12)
-
-            // Expandable content
-            if advancedExpanded {
-                VStack(alignment: .leading, spacing: 12) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Output Directory")
-                            .font(.caption.weight(.medium))
-                            .foregroundStyle(.secondary)
-                        HStack(spacing: 8) {
-                            TextField("Path", text: binding(for: \.outputDirectoryPath))
-                                .textFieldStyle(.roundedBorder)
-                                .font(.caption)
-                            Button {
-                                appState.browseForOutputDirectory()
-                            } label: {
-                                Image(systemName: "folder")
-                                    .font(.caption)
-                            }
-                            .buttonStyle(.bordered)
-                            .controlSize(.small)
-                        }
-                    }
-
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Filename Suffix")
-                            .font(.caption.weight(.medium))
-                            .foregroundStyle(.secondary)
-                        TextField("_imgpress", text: binding(for: \.filenameSuffix))
-                            .textFieldStyle(.roundedBorder)
-                            .font(.caption)
-                    }
-                }
-                .padding(.horizontal, 12)
-                .padding(.bottom, 12)
-                .transition(.opacity.combined(with: .move(edge: .top)))
-            }
-        }
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color.secondary.opacity(0.04))
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-    }
-
     private var convertButton: some View {
         Button {
             appState.queueConversion()
@@ -670,21 +397,53 @@ struct ContentView: View {
                         .controlSize(.small)
                         .scaleEffect(0.8)
                     Text("Converting…")
-                        .font(.headline)
+                        .font(.subheadline.weight(.medium))
                 } else {
                     Image(systemName: "bolt.fill")
-                        .font(.headline)
+                        .font(.subheadline)
                     Text("Convert All")
-                        .font(.headline)
+                        .font(.subheadline.weight(.medium))
                 }
             }
+            .foregroundStyle(appState.isConverting ? .secondary : .primary)
             .frame(maxWidth: .infinity)
-            .frame(height: 44)
+            .frame(height: 40)
+            .background(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(convertButtonBackground)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .strokeBorder(
+                        appState.isConverting
+                            ? Color.secondary.opacity(0.15)
+                            : Color.accentColor.opacity(0.3),
+                        lineWidth: 1
+                    )
+            )
         }
-        .buttonStyle(.borderedProminent)
-        .controlSize(.large)
+        .buttonStyle(.plain)
         .disabled(appState.isConverting)
-        .shadow(color: Color.accentColor.opacity(appState.isConverting ? 0 : 0.3), radius: 8, y: 4)
+        .animation(.easeInOut(duration: 0.2), value: appState.isConverting)
+    }
+
+    private var convertButtonBackground: LinearGradient {
+        if appState.isConverting {
+            return LinearGradient(
+                colors: [Color.secondary.opacity(0.06), Color.secondary.opacity(0.06)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        } else {
+            return LinearGradient(
+                colors: [
+                    Color.accentColor.opacity(0.12),
+                    Color.accentColor.opacity(0.08),
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        }
     }
 
     private var conversionStatusSection: some View {
@@ -723,6 +482,10 @@ struct ContentView: View {
                         .font(.headline)
                     if summary.failedCount > 0 {
                         Text("\(summary.completedCount) succeeded, \(summary.failedCount) failed")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    } else if summary.completedCount < summary.totalFiles {
+                        Text("\(summary.completedCount) of \(summary.totalFiles) files converted")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     } else {
@@ -875,8 +638,8 @@ struct ContentView: View {
         case .inProgress(let step):
             return step.rawValue
         case .completed(let result):
-            let formatter = Self.byteFormatter.string(fromByteCount: result.outputSize)
-            return "✓ \(formatter)"
+            let formattedSize = Formatters.byteCount.string(fromByteCount: result.outputSize)
+            return "✓ \(formattedSize)"
         case .failed(let message):
             return "✗ \(message)"
         }
@@ -1064,10 +827,8 @@ struct ContentView: View {
                 NSApplication.shared.terminate(nil)
             } label: {
                 HStack(spacing: 4) {
-                    Image(systemName: "power")
-                        .font(.caption)
-                    Text("Quit")
-                        .font(.caption)
+                    Image(systemName: "power").font(.caption)
+                    Text("Quit").font(.caption)
                 }
             }
             .buttonStyle(.plain)
@@ -1081,111 +842,5 @@ struct ContentView: View {
             get: { self.appState.conversionForm[keyPath: keyPath] },
             set: { self.appState.conversionForm[keyPath: keyPath] = $0 }
         )
-    }
-}
-
-struct TipRow: View {
-    let icon: String
-    let text: String
-
-    var body: some View {
-        HStack(spacing: 10) {
-            Image(systemName: icon)
-                .font(.caption)
-                .foregroundStyle(Color.accentColor)
-                .frame(width: 20)
-
-            Text(text)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-    }
-}
-
-// Shared components for result displays
-struct SizeComparisonView: View {
-    let originalSize: Int64
-    let outputSize: Int64
-    let isSmaller: Bool
-
-    var body: some View {
-        HStack(spacing: 20) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Original")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                Text(ContentView.byteFormatter.string(fromByteCount: originalSize))
-                    .font(.subheadline.weight(.semibold))
-                    .monospacedDigit()
-            }
-
-            Image(systemName: "arrow.right")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Optimized")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                Text(ContentView.byteFormatter.string(fromByteCount: outputSize))
-                    .font(.subheadline.weight(.semibold))
-                    .monospacedDigit()
-                    .foregroundStyle(isSmaller ? .green : .orange)
-            }
-
-            Spacer()
-        }
-    }
-}
-
-struct PercentChangeBadge: View {
-    let percentChange: Double
-    let sizeDelta: Int64
-    let isSmaller: Bool
-
-    var body: some View {
-        VStack(alignment: .trailing, spacing: 4) {
-            let percent = abs(percentChange)
-            let formatted = String(format: "%.1f%%", percent)
-            Text(isSmaller ? "-\(formatted)" : "+\(formatted)")
-                .font(.title3.weight(.bold))
-                .monospacedDigit()
-                .foregroundStyle(isSmaller ? .green : .orange)
-
-            let savedBytes = abs(sizeDelta)
-            Text(
-                isSmaller
-                    ? "saved \(ContentView.byteFormatter.string(fromByteCount: savedBytes))"
-                    : "added \(ContentView.byteFormatter.string(fromByteCount: savedBytes))"
-            )
-            .font(.caption2)
-            .foregroundStyle(.secondary)
-        }
-    }
-}
-
-struct ResultContainerModifier: ViewModifier {
-    let isSmaller: Bool
-
-    func body(content: Content) -> some View {
-        content
-            .padding(16)
-            .background(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(isSmaller ? Color.green.opacity(0.08) : Color.orange.opacity(0.08))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .strokeBorder(
-                        isSmaller ? Color.green.opacity(0.3) : Color.orange.opacity(0.3),
-                        lineWidth: 1)
-            )
-            .transition(.opacity.combined(with: .move(edge: .bottom)))
-    }
-}
-
-extension View {
-    func resultContainer(isSmaller: Bool) -> some View {
-        modifier(ResultContainerModifier(isSmaller: isSmaller))
     }
 }

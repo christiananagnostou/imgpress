@@ -1,5 +1,6 @@
 import AppKit
 
+/// Manages the menu bar status item and popover interactions
 @MainActor
 final class MenuBarController: NSObject {
     private let popover: NSPopover
@@ -12,11 +13,11 @@ final class MenuBarController: NSObject {
         self.appState = appState
         self.statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         super.init()
-        
+
         statusItem.isVisible = true
         statusItem.behavior = [.removalAllowed]
         statusItem.autosaveName = "ImgPressStatusItem"
-        
+
         configureStatusItem()
     }
 
@@ -41,11 +42,12 @@ final class MenuBarController: NSObject {
 
     private func configureStatusItem() {
         guard let button = statusItem.button else { return }
-        
-        button.image = NSImage(systemSymbolName: "camera.aperture", accessibilityDescription: "ImgPress")
+
+        button.image = NSImage(
+            systemSymbolName: "camera.aperture", accessibilityDescription: "ImgPress")
         button.image?.isTemplate = true
         if button.image == nil {
-            button.title = "Reb"
+            button.title = "ImgPress"
             button.font = NSFont.systemFont(ofSize: NSFont.systemFontSize, weight: .semibold)
         }
         button.target = self
@@ -67,21 +69,23 @@ final class MenuBarController: NSObject {
             dropView.leadingAnchor.constraint(equalTo: button.leadingAnchor),
             dropView.trailingAnchor.constraint(equalTo: button.trailingAnchor),
             dropView.topAnchor.constraint(equalTo: button.topAnchor),
-            dropView.bottomAnchor.constraint(equalTo: button.bottomAnchor)
+            dropView.bottomAnchor.constraint(equalTo: button.bottomAnchor),
         ])
     }
 
     private func animateHighlight(isHighlighted: Bool) {
         guard let button = statusItem.button else { return }
+
+        // Ensure layer exists before modifying background
+        if button.layer == nil {
+            button.wantsLayer = true
+        }
+
         let highlightColor = NSColor.controlAccentColor.withAlphaComponent(isHighlighted ? 0.35 : 0)
+        button.layer?.backgroundColor = highlightColor.cgColor
+
         if isHighlighted {
-            if button.layer == nil {
-                button.wantsLayer = true
-            }
-            button.layer?.backgroundColor = highlightColor.cgColor
             button.layer?.cornerRadius = 6
-        } else {
-            button.layer?.backgroundColor = highlightColor.cgColor
         }
     }
 
