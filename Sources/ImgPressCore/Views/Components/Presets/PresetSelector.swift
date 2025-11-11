@@ -5,7 +5,7 @@ import SwiftUI
 struct PresetSelector: View {
   @ObservedObject var appState: AppState
   @ObservedObject var presetManager: PresetManager
-  @Binding var showingSavePreset: Bool
+  let onSavePreset: () -> Void
 
   @State private var isExpanded: Bool = true
   @State private var selectedTab: PresetTab = .defaults
@@ -38,7 +38,7 @@ struct PresetSelector: View {
         Divider()
 
         Button {
-          showingSavePreset = true
+          onSavePreset()
         } label: {
           HStack(spacing: 8) {
             Image(systemName: "plus.circle.fill")

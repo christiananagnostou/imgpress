@@ -4,7 +4,7 @@ import SwiftUI
 struct ContentView: View {
     @EnvironmentObject private var appState: AppState
     @State private var showingSettings = false
-    @State private var showingSavePreset = false
+    @State private var presetFormToSave: ConversionForm?
 
     // Limit number of jobs displayed to prevent performance issues with large batches
     private static let displayLimit = 50
@@ -58,16 +58,14 @@ struct ContentView: View {
         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: appState.isImporting)
         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: appState.jobs.isEmpty)
         .sheet(isPresented: $showingSettings) {
-            SettingsView(manager: appState.presetManager)
-        }
-        .sheet(isPresented: $showingSavePreset) {
-            PresetEditorView(
+            SettingsView(
                 manager: appState.presetManager,
-                editingPreset: nil,
-                initialForm: appState.conversionForm
-            ) { name, description, icon, form in
-                appState.presetManager.createPreset(
-                    name: name, description: description, icon: icon, form: form)
+                initialPresetForm: presetFormToSave
+            )
+        }
+        .onChange(of: showingSettings) { _, isShowing in
+            if !isShowing {
+                presetFormToSave = nil
             }
         }
     }
@@ -151,7 +149,10 @@ struct ContentView: View {
             PresetSelector(
                 appState: appState,
                 presetManager: appState.presetManager,
-                showingSavePreset: $showingSavePreset
+                onSavePreset: {
+                    presetFormToSave = appState.conversionForm
+                    showingSettings = true
+                }
             )
 
             // Conversion form controls (format, quality, metadata, advanced options)
