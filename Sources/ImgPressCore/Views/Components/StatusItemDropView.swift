@@ -1,6 +1,7 @@
 import AppKit
 import UniformTypeIdentifiers
 
+/// Custom view that handles drag-and-drop operations and click events for the menu bar status item
 final class StatusItemDropView: NSView {
     var onClick: (() -> Void)?
     var onPerformDrop: (([URL]) -> Void)?
@@ -63,11 +64,23 @@ final class StatusItemDropView: NSView {
 
     private func fileURLs(from draggingInfo: NSDraggingInfo) -> [URL] {
         let pasteboard = draggingInfo.draggingPasteboard
-        return pasteboard.readObjects(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) as? [URL] ?? []
+        return pasteboard.readObjects(
+            forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) as? [URL] ?? []
     }
 
     private func containsAcceptableFile(in draggingInfo: NSDraggingInfo) -> Bool {
         let urls = fileURLs(from: draggingInfo)
-        return urls.contains(where: FileTypeValidator.isAcceptable)
+        return urls.contains { url in
+            // Accept if the URL is an acceptable image file
+            if FileTypeValidator.isAcceptable(url) {
+                return true
+            }
+            // Accept if the URL is a directory (AppState.flattenURLs will handle recursion)
+            var isDirectory: ObjCBool = false
+            if FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory) {
+                return isDirectory.boolValue
+            }
+            return false
+        }
     }
 }

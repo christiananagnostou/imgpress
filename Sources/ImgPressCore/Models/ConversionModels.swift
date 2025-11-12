@@ -1,6 +1,9 @@
 import Foundation
 
-enum ImageFormat: String, CaseIterable, Identifiable, Sendable {
+// MARK: - Image Format
+
+/// Supported output image formats
+enum ImageFormat: String, CaseIterable, Identifiable, Sendable, Codable {
     case jpeg = "JPEG"
     case png = "PNG"
     case webp = "WebP"
@@ -33,11 +36,13 @@ enum ImageFormat: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
-struct ConversionForm: Sendable {
+// MARK: - Conversion Form
+
+/// Configuration parameters for an image conversion operation
+struct ConversionForm: Sendable, Codable, Equatable {
     var format: ImageFormat
     var quality: Double
     var preserveMetadata: Bool
-    var resizeEnabled: Bool
     var resizePercent: Double
     var outputDirectoryPath: String
     var filenameSuffix: String
@@ -47,7 +52,6 @@ struct ConversionForm: Sendable {
             format: format,
             quality: 75,
             preserveMetadata: true,
-            resizeEnabled: false,
             resizePercent: 100,
             outputDirectoryPath: "~/Desktop/ImgPress",
             filenameSuffix: ""
@@ -55,54 +59,56 @@ struct ConversionForm: Sendable {
     }
 }
 
-struct ConversionPreset: Identifiable, Equatable, Sendable {
-    let id = UUID()
-    let name: String
-    let detail: String
-    let hero: String
-    let defaultFormat: ImageFormat
-    let defaultQuality: Double
-    let defaultResizePercent: Double
-    let preserveMetadata: Bool
+// MARK: - Preset
+
+/// Unified preset structure for both default and custom presets
+struct Preset: Identifiable, Codable, Equatable, Sendable {
+    var id: UUID = UUID()
+    var name: String
+    var description: String
+    var icon: String
+    var format: ImageFormat
+    var qualityPercent: Double
+    var resizePercent: Double
+    var preserveMetadata: Bool
 
     func makeForm() -> ConversionForm {
         ConversionForm(
-            format: defaultFormat,
-            quality: defaultQuality,
+            format: format,
+            quality: qualityPercent,
             preserveMetadata: preserveMetadata,
-            resizeEnabled: defaultResizePercent != 100,
-            resizePercent: defaultResizePercent,
+            resizePercent: resizePercent,
             outputDirectoryPath: "~/Desktop/ImgPress",
             filenameSuffix: ""
         )
     }
 
-    static let defaults: [ConversionPreset] = [
-        ConversionPreset(
+    static let defaults: [Preset] = [
+        Preset(
             name: "Shareable JPEG",
-            detail: "75% quality • metadata preserved",
-            hero: "sparkles",
-            defaultFormat: .jpeg,
-            defaultQuality: 75,
-            defaultResizePercent: 100,
+            description: "Best for websites",
+            icon: "sparkles",
+            format: .jpeg,
+            qualityPercent: 75,
+            resizePercent: 100,
             preserveMetadata: true
         ),
-        ConversionPreset(
+        Preset(
             name: "Transparent PNG",
-            detail: "Lossless • best for logos",
-            hero: "rectangle.and.arrow.up.right.and.arrow.down.left",
-            defaultFormat: .png,
-            defaultQuality: 100,
-            defaultResizePercent: 100,
+            description: "Best for logos",
+            icon: "rectangle.and.arrow.up.right.and.arrow.down.left",
+            format: .png,
+            qualityPercent: 100,
+            resizePercent: 100,
             preserveMetadata: true
         ),
-        ConversionPreset(
+        Preset(
             name: "High-efficiency AVIF",
-            detail: "45% smaller • modern devices",
-            hero: "leaf",
-            defaultFormat: .avif,
-            defaultQuality: 60,
-            defaultResizePercent: 100,
+            description: "Modern devices",
+            icon: "leaf",
+            format: .avif,
+            qualityPercent: 60,
+            resizePercent: 100,
             preserveMetadata: true
         ),
     ]
