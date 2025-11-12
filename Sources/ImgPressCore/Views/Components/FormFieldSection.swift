@@ -41,20 +41,72 @@ struct FormFieldSection<Content: View>: View {
 }
 
 /// Simple labeled text field for forms
-struct FormTextField: View {
+struct FormTextField<TrailingContent: View>: View {
   let label: String
   let placeholder: String
   @Binding var text: String
+  let trailingContent: (() -> TrailingContent)?
+
+  init(
+    label: String,
+    placeholder: String,
+    text: Binding<String>,
+    @ViewBuilder trailingContent: @escaping () -> TrailingContent
+  ) {
+    self.label = label
+    self.placeholder = placeholder
+    self._text = text
+    self.trailingContent = trailingContent
+  }
+
+  init(
+    label: String,
+    placeholder: String,
+    text: Binding<String>
+  ) where TrailingContent == EmptyView {
+    self.label = label
+    self.placeholder = placeholder
+    self._text = text
+    self.trailingContent = nil
+  }
 
   var body: some View {
     VStack(alignment: .leading, spacing: 8) {
       Text(label)
         .font(.caption.weight(.medium))
         .foregroundStyle(.secondary)
-      TextField(placeholder, text: $text)
-        .textFieldStyle(.roundedBorder)
-        .font(.caption)
+
+      if let trailing = trailingContent {
+        HStack(spacing: 8) {
+          StyledTextField(placeholder: placeholder, text: $text)
+          trailing()
+        }
+      } else {
+        StyledTextField(placeholder: placeholder, text: $text)
+      }
     }
+  }
+}
+
+/// Styled text field matching app design
+private struct StyledTextField: View {
+  let placeholder: String
+  @Binding var text: String
+
+  var body: some View {
+    TextField(placeholder, text: $text)
+      .textFieldStyle(.plain)
+      .font(.subheadline)
+      .padding(.horizontal, 12)
+      .padding(.vertical, 8)
+      .background(
+        RoundedRectangle(cornerRadius: 8, style: .continuous)
+          .fill(Color.secondary.opacity(0.08))
+      )
+      .overlay(
+        RoundedRectangle(cornerRadius: 8, style: .continuous)
+          .strokeBorder(Color.primary.opacity(0.1), lineWidth: 0.5)
+      )
   }
 }
 
@@ -64,23 +116,6 @@ struct FormIconPicker: View {
   @Binding var iconName: String
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 8) {
-      Text(label)
-        .font(.caption.weight(.medium))
-        .foregroundStyle(.secondary)
-      HStack {
-        TextField("SF Symbol name", text: $iconName)
-          .textFieldStyle(.roundedBorder)
-          .font(.caption)
-
-        // Icon preview
-        Image(systemName: iconName)
-          .font(.system(size: 20))
-          .foregroundStyle(Color.accentColor)
-          .frame(width: 40, height: 40)
-          .background(Color.accentColor.opacity(0.1))
-          .clipShape(Circle())
-      }
-    }
+    IconPicker(selectedIcon: $iconName)
   }
 }

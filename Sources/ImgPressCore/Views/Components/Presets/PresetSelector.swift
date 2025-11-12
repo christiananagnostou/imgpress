@@ -7,8 +7,8 @@ struct PresetSelector: View {
   @ObservedObject var presetManager: PresetManager
   let onSavePreset: () -> Void
 
-  @State private var isExpanded: Bool = true
-  @State private var selectedTab: PresetTab = .defaults
+  @State private var isExpanded: Bool = false
+  @State private var selectedTab: PresetTab = .custom
   @State private var selectedCustomPresetId: UUID?
 
   enum PresetTab: Equatable {
@@ -22,8 +22,8 @@ struct PresetSelector: View {
         ModernSegmentedControl(
           selection: $selectedTab,
           options: [
-            (value: .defaults, title: "Defaults", icon: "sparkles"),
             (value: .custom, title: "Custom", icon: "star.fill"),
+            (value: .defaults, title: "Defaults", icon: "sparkles"),
           ]
         )
 
@@ -56,7 +56,6 @@ struct PresetSelector: View {
         }
         .buttonStyle(.plain)
       }
-      .padding(.horizontal, 12)
       .padding(.bottom, 12)
     } label: {
       HStack {
@@ -118,14 +117,13 @@ struct PresetSelector: View {
   private var defaultPresetsGrid: some View {
     VStack(spacing: 8) {
       ForEach(appState.presets) { preset in
-        PresetCard(
-          title: preset.name,
-          subtitle: presetSubtitle(for: preset),
-          icon: preset.icon,
-          iconColor: .accentColor,
-          rightContent: .badge(preset.format.displayName.uppercased()),
+        PresetRow(
+          preset: preset,
+          showIcon: true,
+          showEditButton: false,
           isSelected: isDefaultPresetSelected(preset),
-          action: {
+          showBadge: true,
+          onTap: {
             appState.selectPreset(preset)
             selectedCustomPresetId = nil  // Clear custom selection
             selectedTab = .defaults
@@ -157,39 +155,19 @@ struct PresetSelector: View {
         .padding(.vertical, 24)
       } else {
         ForEach(presetManager.presets) { preset in
-          PresetCard(
-            title: preset.name,
-            subtitle: presetSubtitle(for: preset),
-            icon: preset.icon,
-            iconColor: .accentColor,
-            rightContent: .badge(preset.format.displayName.uppercased()),
+          PresetRow(
+            preset: preset,
+            showIcon: true,
+            showEditButton: false,
             isSelected: isCustomPresetSelected(preset),
-            action: {
+            showBadge: true,
+            onTap: {
               selectCustomPreset(preset)
             }
           )
         }
       }
     }
-  }
-
-  private func presetSubtitle(for preset: Preset) -> String {
-    var parts: [String] = []
-
-    // Quality (only for formats that support it)
-    if preset.format.supportsQuality {
-      parts.append("\(Int(preset.qualityPercent))% quality")
-    }
-
-    // Size (only if not 100%)
-    if preset.resizePercent != 100 {
-      parts.append("\(Int(preset.resizePercent))% size")
-    }
-
-    // Description
-    parts.append(preset.description)
-
-    return parts.joined(separator: " • ")
   }
 
   private func isDefaultPresetSelected(_ preset: Preset) -> Bool {
@@ -207,95 +185,5 @@ struct PresetSelector: View {
     appState.conversionForm = preset.makeForm()
     selectedCustomPresetId = preset.id
     selectedTab = .custom
-  }
-}
-
-// MARK: - Unified Preset Card
-
-private struct PresetCard: View {
-  let title: String
-  let subtitle: String
-  let icon: String
-  let iconColor: Color
-  let rightContent: RightContent
-  let isSelected: Bool
-  let action: () -> Void
-
-  enum RightContent {
-    case badge(String)
-    case checkmark
-    case none
-  }
-
-  var body: some View {
-    Button(action: action) {
-      HStack(spacing: 12) {
-        // Icon with background
-        ZStack {
-          Circle()
-            .fill(iconColor.opacity(isSelected ? 0.2 : 0.1))
-            .frame(width: 40, height: 40)
-
-          Image(systemName: icon)
-            .font(.system(size: 16, weight: .medium))
-            .foregroundStyle(isSelected ? iconColor : Color.secondary)
-        }
-
-        // Text content
-        VStack(alignment: .leading, spacing: 3) {
-          Text(title)
-            .font(.subheadline.weight(.medium))
-            .foregroundStyle(.primary)
-
-          Text(subtitle)
-            .font(.caption2)
-            .foregroundStyle(.secondary)
-        }
-
-        Spacer()
-
-        // Right content
-        rightContentView
-      }
-      .padding(12)
-      .contentShape(Rectangle())
-      .background(
-        RoundedRectangle(cornerRadius: 10, style: .continuous)
-          .fill(isSelected ? Color.accentColor.opacity(0.08) : Color.clear)
-      )
-      .overlay(
-        RoundedRectangle(cornerRadius: 10, style: .continuous)
-          .strokeBorder(
-            isSelected ? Color.accentColor.opacity(0.3) : Color.clear,
-            lineWidth: 1.5
-          )
-      )
-    }
-    .buttonStyle(.plain)
-  }
-
-  @ViewBuilder
-  private var rightContentView: some View {
-    switch rightContent {
-    case .badge(let text):
-      Text(text)
-        .font(.caption2.weight(.semibold))
-        .foregroundStyle(isSelected ? Color.accentColor : .secondary)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
-        .background(
-          Capsule().fill(
-            isSelected
-              ? Color.accentColor.opacity(0.15)
-              : Color.secondary.opacity(0.1)
-          )
-        )
-    case .checkmark:
-      Image(systemName: "checkmark.circle.fill")
-        .font(.system(size: 18))
-        .foregroundStyle(Color.accentColor)
-    case .none:
-      EmptyView()
-    }
   }
 }

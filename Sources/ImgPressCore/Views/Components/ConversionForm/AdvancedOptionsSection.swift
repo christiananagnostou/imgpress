@@ -9,37 +9,37 @@ struct AdvancedOptionsSection: View {
     DisclosureGroup(isExpanded: $isExpanded) {
       VStack(alignment: .leading, spacing: 12) {
         // Output Directory
-        VStack(alignment: .leading, spacing: 8) {
-          Text("Output Directory")
-            .font(.caption.weight(.medium))
-            .foregroundStyle(.secondary)
-          HStack(spacing: 8) {
-            TextField("Path", text: $form.outputDirectoryPath)
-              .textFieldStyle(.roundedBorder)
-              .font(.caption)
-
-            Button {
-              onBrowseDirectory?()
-            } label: {
-              Image(systemName: "folder")
-                .font(.caption)
-            }
-            .buttonStyle(.bordered)
-            .controlSize(.small)
+        FormTextField(
+          label: "Output Directory",
+          placeholder: "Path",
+          text: $form.outputDirectoryPath
+        ) {
+          Button {
+            onBrowseDirectory?()
+          } label: {
+            Image(systemName: "folder")
+              .font(.subheadline)
           }
+          .buttonStyle(.plain)
+          .padding(.horizontal, 12)
+          .padding(.vertical, 8)
+          .background(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+              .fill(Color.secondary.opacity(0.08))
+          )
+          .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+              .strokeBorder(Color.primary.opacity(0.1), lineWidth: 0.5)
+          )
         }
 
         // Filename Suffix
-        VStack(alignment: .leading, spacing: 8) {
-          Text("Filename Suffix")
-            .font(.caption.weight(.medium))
-            .foregroundStyle(.secondary)
-          TextField("_imgpress", text: $form.filenameSuffix)
-            .textFieldStyle(.roundedBorder)
-            .font(.caption)
-        }
+        FormTextField(
+          label: "Filename Suffix",
+          placeholder: "_imgpress",
+          text: $form.filenameSuffix
+        )
       }
-      .padding(.horizontal, 12)
       .padding(.bottom, 12)
     } label: {
       Label("Advanced Options", systemImage: "gearshape.2")
