@@ -55,6 +55,7 @@ struct ContentView: View {
         }
         .appBackground()
         .frame(width: 420, height: 600)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: appState.isImporting)
         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: appState.jobs.isEmpty)
         .sheet(isPresented: $showingSettings) {

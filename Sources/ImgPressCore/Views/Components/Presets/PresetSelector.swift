@@ -87,6 +87,16 @@ struct PresetSelector: View {
     )
     .animation(.spring(response: 0.3), value: selectedTab)
     .animation(.spring(response: 0.3), value: isExpanded)
+    .onAppear {
+      // Initialize selection based on current AppState preset
+      if let customPreset = presetManager.presets.first(where: { $0 == appState.selectedPreset }) {
+        selectedCustomPresetId = customPreset.id
+        selectedTab = .custom
+      } else if appState.presets.contains(where: { $0 == appState.selectedPreset }) {
+        selectedTab = .defaults
+        selectedCustomPresetId = nil
+      }
+    }
     .onChange(of: presetManager.presets.count) { oldCount, newCount in
       // Auto-select newly created preset
       if newCount > oldCount, let newest = presetManager.presets.last {

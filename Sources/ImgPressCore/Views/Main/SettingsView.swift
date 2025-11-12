@@ -100,6 +100,7 @@ struct SettingsView: View {
     }
     .appBackground()
     .frame(width: 420, height: 600)
+    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     .onAppear {
       if let initialForm = initialPresetForm {
         selectedTab = .presets

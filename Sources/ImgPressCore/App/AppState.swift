@@ -33,11 +33,19 @@ final class AppState: ObservableObject {
         self.conversionService = conversionService
         self.presetManager = presetManager
         self.presets = Preset.defaults
-        let initialPreset = Preset.defaults[0]
-        self.selectedPreset = initialPreset
 
-        // Auto-apply first preset if enabled
-        self.conversionForm = presetManager.getAutoApplyForm() ?? initialPreset.makeForm()
+        // Determine initial preset based on auto-apply setting
+        let initialPreset: Preset
+        if presetManager.autoApplyFirstPreset, let firstCustom = presetManager.presets.first {
+            // Auto-apply enabled: use first custom preset if available
+            initialPreset = firstCustom
+        } else {
+            // Auto-apply disabled: always use first default preset
+            initialPreset = Preset.defaults[0]
+        }
+
+        self.selectedPreset = initialPreset
+        self.conversionForm = initialPreset.makeForm()
     }
 
     func register(drop urls: [URL]) {
