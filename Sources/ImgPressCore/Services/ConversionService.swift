@@ -3,6 +3,8 @@ import Foundation
 import ImageIO
 import UniformTypeIdentifiers
 
+// MARK: - Conversion Service Error
+
 enum ConversionServiceError: LocalizedError, Sendable {
     case unsupportedFormat
     case imageReadFailed
@@ -27,6 +29,9 @@ enum ConversionServiceError: LocalizedError, Sendable {
     }
 }
 
+// MARK: - Conversion Result
+
+/// Result of a completed image conversion operation
 struct ConversionResult: Sendable, Equatable {
     let originalSize: Int64
     let outputSize: Int64
@@ -48,6 +53,9 @@ struct ConversionResult: Sendable, Equatable {
     }
 }
 
+// MARK: - Conversion Service
+
+/// Handles image format conversion using ImageIO framework
 final class ConversionService: Sendable {
     func convert(
         item: DroppedItem,
@@ -118,7 +126,7 @@ final class ConversionService: Sendable {
             options[kCGImageDestinationLossyCompressionQuality] = form.quality / 100.0
         }
 
-        if form.resizeEnabled,
+        if form.resizePercent != 100,
             let properties = sourceProperties,
             let width = properties[kCGImagePropertyPixelWidth] as? CGFloat,
             let height = properties[kCGImagePropertyPixelHeight] as? CGFloat
@@ -150,6 +158,9 @@ final class ConversionService: Sendable {
     }
 }
 
+// MARK: - Conversion Stage
+
+/// Stages of the conversion process for progress reporting
 enum ConversionStage: String, Sendable {
     case ensuringOutputDirectory = "Creating output directory"
     case loadingInput = "Loading image"

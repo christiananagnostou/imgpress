@@ -14,6 +14,7 @@
 - **Real-time Stats** - Size comparison and conversion progress
 - **Flexible Control** - Pause, resume, or stop conversions
 - **Quick Presets** - Pre-configured workflows for common tasks
+- **Custom Presets** - Save your favorite settings for instant reuse
 - **RAW Support** - Handles CR2, CR3, DNG, and other camera formats
 
 ## Installation
@@ -32,11 +33,30 @@ swift build -c release
 3. Choose format and quality settings
 4. Click Convert
 
-### Presets
+### Quick Presets
+
+Built-in presets for common workflows:
 
 - **Shareable JPEG** - 75% quality, web-optimized
 - **Transparent PNG** - Lossless, ideal for logos
 - **High-efficiency AVIF** - Modern format, 45% smaller files
+
+### Custom Presets
+
+Save your favorite settings for instant reuse:
+
+1. Configure your desired format, quality, resize, and options
+2. Expand the **Quick Presets** section
+3. Click **Save Current Settings**
+4. Name your preset and click Create
+
+Your custom presets appear below the default ones with a ⭐ icon. Manage them in Settings (⚙️):
+
+- **Edit** - Update preset name or settings
+- **Delete** - Swipe left or use delete key
+- **Reorder** - Drag to change order
+- **Auto-apply** - Toggle to apply first preset on launch
+
 
 ## Development
 
