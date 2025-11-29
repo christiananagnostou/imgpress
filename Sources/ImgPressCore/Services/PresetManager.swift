@@ -21,6 +21,7 @@ final class PresetManager: ObservableObject {
 
   func createPreset(name: String, description: String, icon: String, form: ConversionForm) {
     let preset = Preset(
+      id: UUID(),
       name: name,
       description: description,
       icon: icon,
@@ -99,6 +100,7 @@ final class PresetManager: ObservableObject {
 
   // MARK: - Auto-Apply
 
+  /// Returns the first custom preset's conversion form when auto-apply is enabled; otherwise `nil`.
   func getAutoApplyForm() -> ConversionForm? {
     guard autoApplyFirstPreset, let firstPreset = presets.first else {
       return nil

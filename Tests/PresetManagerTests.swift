@@ -39,6 +39,7 @@ struct PresetManagerTests {
   func loadsPersisted() {
     let defaults = makeTestDefaults()
     let preset = Preset(
+      id: UUID(),
       name: "Test",
       description: "Test preset",
       icon: "star.fill",
@@ -302,6 +303,7 @@ struct PresetManagerTests {
   @Test("Preset makeForm returns correct form")
   func makeForm() {
     let preset = Preset(
+      id: UUID(),
       name: "Test", description: "Test desc", icon: "star", format: .jpeg, qualityPercent: 65,
       resizePercent: 50, preserveMetadata: true)
 

@@ -63,7 +63,7 @@ struct ConversionForm: Sendable, Codable, Equatable {
 
 /// Unified preset structure for both default and custom presets
 struct Preset: Identifiable, Codable, Equatable, Sendable {
-    var id: UUID = UUID()
+    let id: UUID
     var name: String
     var description: String
     var icon: String
@@ -85,6 +85,7 @@ struct Preset: Identifiable, Codable, Equatable, Sendable {
 
     static let defaults: [Preset] = [
         Preset(
+            id: UUID(),
             name: "Shareable JPEG",
             description: "Best for websites",
             icon: "sparkles",
@@ -94,6 +95,7 @@ struct Preset: Identifiable, Codable, Equatable, Sendable {
             preserveMetadata: true
         ),
         Preset(
+            id: UUID(),
             name: "Transparent PNG",
             description: "Best for logos",
             icon: "rectangle.and.arrow.up.right.and.arrow.down.left",
@@ -103,6 +105,7 @@ struct Preset: Identifiable, Codable, Equatable, Sendable {
             preserveMetadata: true
         ),
         Preset(
+            id: UUID(),
             name: "High-efficiency AVIF",
             description: "Modern devices",
             icon: "leaf",

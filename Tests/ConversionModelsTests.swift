@@ -90,6 +90,7 @@ struct PresetTests {
     @Test("Preset resize settings are applied")
     func testPresetResizeSettings() {
         let preset = Preset(
+            id: UUID(),
             name: "Test",
             description: "Test preset",
             icon: "test",
